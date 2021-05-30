@@ -5,6 +5,7 @@ import { StyleSheet, View, Text,TextInput, Button,AsyncStorage ,ScrollView, Plat
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import firebase from "../../database/fireBase";
+import auth from "@react-native-firebase/auth";
 
 
 const {width, height} = Dimensions.get('window')
@@ -28,24 +29,27 @@ const HomeRegister = (props) => {
   const [minPrice, setMinPrice] =useState('')
   const [maxPrice, setMaxPrice] = useState('')
 
-  const onSubmit = () => {
-    const userId = props.route.params.uid
+  const onSubmit = async () => {
+    const isLogged = await AsyncStorage.getItem('Login')
+    const userId = auth().currentUser.uid
     firebase
       .database()
-      .ref('users/' + userId + '/')
-      .update({
-        searchQuery: {
+      .ref('users/' + userId + '/homeParam/')
+      .push({
           town: town,
           neighborhood: neighborhood,
           bedrooms: [bedroomsMin, bedroomsMax],
           bathrooms: [bathroomsMin,bathroomsMax],
           homeSize: [minSize, maxSize],
           homePrice: [minPrice, maxPrice],
-        }
       })
       .then((data) => {
         console.log('Saved Data', data)
-        props.navigation.navigate('AboutRivenn', {userInfo: props.route.params.userInfo})
+        if(isLogged == 'true') {
+          props.navigation.navigate('ProfileScreen')
+        } else {
+          props.navigation.navigate('AboutRivenn')
+        }
       })
       .catch((error) => {
         console.log('Storing Error', error)
