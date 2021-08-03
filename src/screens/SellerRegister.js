@@ -1,28 +1,29 @@
 // components/dashboard.js
 
-import React, {useState}  from 'react';
+import React, {useState, useEffect}  from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   Button,
-  AsyncStorage,
   ScrollView,
   Dimensions,
   Platform,
   Alert,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import firebase from '../../database/fireBase'
+import auth from '@react-native-firebase/auth';
 
 const {width, height} = Dimensions.get('window')
 
 const radio_props = [
   {label: 'Yes', value: 'Yes' },
   {label: 'No', value: 'No' },
-  {label: "I don\'t have a mortgage", value: 'I don\'t have a mortgage"' },
+  {label: "I don\'t have a mortgage", value: 'I don\'t have a mortgage' },
 ];
 const primary_props = [
   {label: 'Yes', value: 'Yes' },
@@ -41,6 +42,16 @@ const SellerRegister = (props) => {
   const [emailError, setEmailError] = useState(false)
   const [mobile, setMobile] = useState('')
   const [password, setPassword] = useState('')
+
+  useEffect(() => {
+    if(props.route.params.profileData) {
+      console.log(props.route.params.profileData,'tut')
+      setFirstName(props.route.params.profileData.firstName)
+      setLastName(props.route.params.profileData.lastName)
+      setEmail(props.route.params.profileData.email)
+      setMobile(props.route.params.profileData.mobileNumber)
+    }
+  }, [props.route.params.profileData])
 
 
   const validateEmail = (email) => {
@@ -62,8 +73,7 @@ const SellerRegister = (props) => {
     if(email === '' || password === '') {
       Alert.alert('Enter details to signup!')
     } else {
-      firebase
-        .auth()
+        auth()
         .createUserWithEmailAndPassword(email, password)
         .then((res) => {
           res.user.updateProfile({
@@ -72,10 +82,10 @@ const SellerRegister = (props) => {
           })
           console.log('registered', res.user.uid)
           setIsLogged(true)
-          AsyncStorage.setItem('Login', JSON.stringify(isLogged))
+
           if(res.user.uid) {
             const userId = res.user.uid
-            firebase
+              firebase
               .database()
               .ref('users/' + userId + '/')
               .set({
@@ -88,7 +98,7 @@ const SellerRegister = (props) => {
                 isPrimary: primaryValue,
               })
               .then((data) => {
-                props.navigation.navigate('SellerHome', {uid: userId, userInfo: res.user})
+                props.navigation.navigate('SellerHome', {addressId:  false,  profileData: false })
               })
               .catch((error) => {
                 console.log('Storing Error', error)
@@ -115,6 +125,33 @@ const SellerRegister = (props) => {
           console.log(error.message)
         })
     }
+  }
+  const onUpdate = () => {
+    const userId = auth().currentUser.uid
+
+    auth().currentUser
+      .updateEmail(email).then(function() {
+      console.log('emsil updated')
+    }).catch(function(error) {
+      console.log('error emsil updated', error)
+      Alert.alert(error)
+    });
+
+    firebase
+      .database()
+      .ref('users/' + userId + '/' )
+      .update({
+          firstName: firstName,
+          lastName: lastName,
+          userType: 'Seller',
+          email: email,
+          mobileNumber: mobile,
+          financing: radioValue,
+        }
+      ).then(() => {
+        props.navigation.navigate("ProfileScreen", {update: true})
+
+    })
   }
   const onSubmit = () => {
     registerUser()
@@ -161,7 +198,7 @@ const SellerRegister = (props) => {
             value={mobile}
           />
         </View>
-
+        {!props.route.params.profileData &&
         <View style={styles.inputItem}>
           <Text style={styles.inputTitle}>Password: </Text>
           <TextInput
@@ -172,7 +209,8 @@ const SellerRegister = (props) => {
             secureTextEntry={true}
           />
         </View>
-
+        }
+        {!props.route.params.profileData &&
         <View style={styles.radioItem}>
           <Text style={styles.radioTitle}>More information </Text>
           <View style={styles.radioWrapper}>
@@ -182,7 +220,8 @@ const SellerRegister = (props) => {
             >
               {
                 radio_props.map((obj, i) => {
-                  return  <RadioButton labelHorizontal={true} key={i}  wrapStyle={{width: i == 2 ? '55%': '22%',marginTop: 10,}} >
+                  return <RadioButton labelHorizontal={true} key={i}
+                                      wrapStyle={{ width: i == 2 ? '55%' : '22%', marginTop: 10, }}>
                     {/*  You can set RadioButtonLabel before RadioButtonInput */}
                     <RadioButtonInput
                       obj={obj}
@@ -200,7 +239,7 @@ const SellerRegister = (props) => {
                       index={i}
                       labelHorizontal={true}
                       onPress={(value) => setRadioValue(value)}
-                      labelStyle={{fontSize: 14, color: '#000'}}
+                      labelStyle={{ fontSize: 14, color: '#000' }}
                     />
                   </RadioButton>
                 })
@@ -214,7 +253,7 @@ const SellerRegister = (props) => {
             >
               {
                 primary_props.map((obj, i) => {
-                  return  <RadioButton labelHorizontal={true} key={i}  wrapStyle={{width: '50%',marginTop: 10,}} >
+                  return <RadioButton labelHorizontal={true} key={i} wrapStyle={{ width: '50%', marginTop: 10, }}>
                     {/*  You can set RadioButtonLabel before RadioButtonInput */}
                     <RadioButtonInput
                       obj={obj}
@@ -232,7 +271,7 @@ const SellerRegister = (props) => {
                       index={i}
                       labelHorizontal={true}
                       onPress={(value) => setRadioValue(value)}
-                      labelStyle={{fontSize: 14, color: '#000'}}
+                      labelStyle={{ fontSize: 14, color: '#000' }}
                     />
                   </RadioButton>
                 })
@@ -240,6 +279,7 @@ const SellerRegister = (props) => {
             </RadioForm>
           </View>
         </View>
+        }
       </View>
 
 
@@ -248,9 +288,14 @@ const SellerRegister = (props) => {
         <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>
           <Text style={styles.textStyle}>Previous</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-          <Text style={styles.textStyle}>Next</Text>
-        </TouchableOpacity>
+        {props.route.params.profileData ?
+          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+            <Text style={styles.textStyle}>Submit</Text>
+          </TouchableOpacity>
+          : <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+            <Text style={styles.textStyle}>Next</Text>
+          </TouchableOpacity>
+        }
       </View>
       </ScrollView>
     </View>

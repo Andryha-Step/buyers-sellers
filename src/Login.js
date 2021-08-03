@@ -8,11 +8,14 @@ import {
   TextInput,
   Button,
   Alert,
-  ActivityIndicator,
-  AsyncStorage,
-} from 'react-native';
+  ActivityIndicator, Dimensions,
+} from "react-native";
 import firebase from '../database/fireBase';
+import auth from '@react-native-firebase/auth';
 import { TouchableOpacity } from "react-native-gesture-handler";
+import database from "@react-native-firebase/database";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const {width, height} = Dimensions.get('window')
 
 export default class Login extends Component {
   constructor() {
@@ -23,11 +26,21 @@ export default class Login extends Component {
       isLoading: false,
       isLogged: false,
     };
+    this.onAuthStateChanged = this.onAuthStateChanged.bind(this)
   }
   async componentDidMount() {
 
-  }
+    const subscriber = auth().onAuthStateChanged(this.onAuthStateChanged)
 
+    return subscriber; // unsubscribe on unmount
+  }
+   onAuthStateChanged =  (user) => {
+    console.log('user login screen', user)
+    if(user) {
+      //this.props.navigation.navigate('ProfileScreen');
+
+    }
+  }
   updateInputVal = (val, prop) => {
     const state = this.state;
     state[prop] = val;
@@ -41,8 +54,7 @@ export default class Login extends Component {
       this.setState({
         isLoading: true,
       });
-      firebase
-        .auth()
+      auth()
         .signInWithEmailAndPassword(this.state.email, this.state.password)
         .then(res => {
           console.log(res);
@@ -53,14 +65,37 @@ export default class Login extends Component {
             email: '',
             password: '',
           });
-          this.props.navigation.navigate('ProfileScreen', { userInfo: res.user});
           AsyncStorage.setItem('Login', JSON.stringify(this.state.isLogged));
+          database()
+            .ref('users/' + res.user.uid)
+            .once('value')
+            .then(snapshot => {
+              if(snapshot.val().userType === 'Seller') {
+                this.props.navigation.navigate('MainStack');
+              } else {
+                this.props.navigation.navigate('MainStackBuyer');
+              }
+            })
+
         })
         .catch(error => {
-          this.setState({errorMessage: error.message});
-          console.log(errorMessage);
-          alert(errorMessage);
-          this.props.navigation.navigate('Login');
+          console.log(error);
+          this.setState({
+            isLoading: false,
+          });
+          Alert.alert(
+            "Email or password is wrong!",
+            'Please, recheck your credentials and try again.',
+            [
+
+              {
+                text: "Ok",
+                style: "cancel"
+              },
+            ],
+
+          );
+          this.props.navigation.navigate('AuthStack');
         });
     }
   };
@@ -75,6 +110,9 @@ export default class Login extends Component {
     }
     return (
       <View style={styles.container}>
+        <Text style={styles.title}>
+          Buyers & Sellers
+        </Text>
         <TextInput
           style={styles.inputStyle}
           placeholder="Email"
@@ -90,7 +128,7 @@ export default class Login extends Component {
           secureTextEntry={true}
         />
 
-          <TouchableOpacity style={styles.loginBtn} onPress={() => this.userLogin()}>
+          <TouchableOpacity style={[styles.loginBtn, {backgroundColor: '#3eadac',padding: 10, borderColor: '#3eadac'}]} onPress={() => this.userLogin()}>
                 <Text style={styles.btnText}>Login</Text>
           </TouchableOpacity>
 
@@ -115,6 +153,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     backgroundColor: '#fff',
   },
+  title: {
+    width: '100%',
+    fontSize: 27,
+    paddingBottom: 30,
+    textAlign: 'center',
+    color: '#000',
+  },
   inputStyle: {
     width: '100%',
     marginBottom: 15,
@@ -125,10 +170,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   loginBtn: {
-    backgroundColor: '#3eadac',
-    textAlign: 'center',
-    alignItems: 'center',
-    padding: 5,
+      width: width - 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 10,
+      marginTop: 20,
+      backgroundColor: '#fff',
+      borderWidth: 2,
+      borderColor: '#000',
+      borderRadius: 10,
+      marginBottom: 10,
+
   },
   btnText: {
     color: '#fff',

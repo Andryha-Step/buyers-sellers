@@ -1,11 +1,13 @@
 // components/dashboard.js
 
-import React, {useState}  from 'react';
-import { StyleSheet, View, Text,TextInput, Button,AsyncStorage ,Platform, Dimensions} from 'react-native';
+import React, {useState,useEffect}  from 'react';
+import { StyleSheet, View, Text, TextInput, Button, Platform, Dimensions, Alert } from "react-native";
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import firebase from "../../database/fireBase";
-
+import auth from '@react-native-firebase/auth';
+import database from "@react-native-firebase/database";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {width, height} = Dimensions.get('window')
 
@@ -18,47 +20,148 @@ const radio_props = [
 const SellerHome = (props) => {
   const [radioValue, setRadioValue] = useState(0)
   const [address, setAddress] = useState('')
+  const [coordinate, setCoordinate] = useState(null)
+  const [placeId, setPlaceId] = useState(null)
   const [price, setPrice] = useState('')
   const [timeFrame, setTimeFrame] = useState('')
   const [whereNew, setWhereNew] = useState('')
+  const [addressId, setAddressId] = useState(null)
+  const [currentKey, setCurrentKey] = useState(null)
 
+  useEffect(() => {
 
+      if(props.route.params.addressId !==  false) {
+        const id = props.route.params.addressId
+        const home = props.route.params.home
+        const userId = props.route.params.userId
+        setAddressId(id)
+              console.log(id,'snapshot.val()')
+              setAddress(home.address)
+              setPrice(home.price)
+              setCoordinate(home.coordinate)
+              setTimeFrame(home.timeFrame)
+              setRadioValue(home.needBuy)
+              setWhereNew(home.whereNew)
 
+      }
+  }, [props.route.params.addressId])
 
-  const onSubmit = () => {
-    const userId = firebase.auth().currentUser.uid
+  const onSubmit = async () => {
+    if(address.length == 0 ||
+        price.length == 0 ||
+        timeFrame.length == 0
+    ) {
+      Alert.alert('All fields are required')
+      return
+    }
+    const userId = auth().currentUser.uid
+    if(address.length == 0) {
+      Alert.alert(
+        "Address can't be empty!",
+        '',
+        [
+
+          {
+            text: "Ok",
+            style: "cancel"
+          },
+        ],
+
+      );
+    }
     firebase
       .database()
-      .ref('users/' + userId + '/')
-      .update({
-        homeQuery: {
+      .ref('users/' + userId + '/homes/')
+      .push({
           address: address,
+          coordinate: coordinate,
           price: price,
           timeFrame: timeFrame,
           whereNew: whereNew,
+          needBuy: radioValue,
         }
-      })
+      )
       .then((data) => {
-        console.log('Saved Data', data)
-        props.navigation.navigate('AboutRivenn', {userInfo: props.route.params.userInfo})
+       let  key = data.getKey()
+        firebase
+          .database()
+          .ref('AllSellerHomes/' + key )
+          .set({
+              address: address,
+              coordinate: coordinate,
+              price: price,
+              timeFrame: timeFrame,
+              whereNew: whereNew,
+              needBuy: radioValue,
+              userId: userId,
+            }
+          )
+          .then((data) => {
+            console.log('Saved Data', data)
+            if(props.route.params.goBack) {
+              props.navigation.goBack()
+            } else {
+              props.navigation.navigate('AboutRivenn', {userType: 'Seller'})
+            }
+          })
       })
       .catch((error) => {
         console.log('Storing Error', error)
       })
 
-  }
 
+  }
+  const onUpdate = () => {
+    if(address.length == 0 ||
+      price.length == 0 ||
+      timeFrame.length == 0
+    ) {
+      Alert.alert('All fields are required')
+      return
+    }
+    const userId = auth().currentUser.uid
+    firebase
+      .database()
+      .ref('users/' + userId + '/homes/' + addressId )
+      .update({
+          address: address,
+          coordinate: coordinate,
+          price: price,
+          timeFrame: timeFrame,
+          whereNew: whereNew,
+          needBuy: radioValue,
+        }
+      )
+    firebase
+      .database()
+      .ref('AllSellerHomes/' + addressId)
+      .update({
+          address: address,
+          coordinate: coordinate,
+          price: price,
+          timeFrame: timeFrame,
+          whereNew: whereNew,
+          needBuy: radioValue,
+          userId: userId,
+
+        }
+      )
+      .then((data) => {
+        console.log('Updated', data)
+        props.navigation.goBack()
+    })
+  }
   return (
     <View style={styles.container}>
       <View style={styles.wrapper}>
 
         <View style={styles.inputItem}>
           <Text style={styles.inputTitle}>My Address: </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(value) => setAddress(value)}
-            value={address}
-          />
+          <View style={styles.input}>
+          <TouchableOpacity  onPress={() => props.navigation.navigate('AddressScreen', {setAddress: setAddress,setCoordinate: setCoordinate, setPlaceId: setPlaceId})}>
+            <Text style={{fontSize: 17,}}> {address}</Text>
+          </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.inputItem}>
           <Text style={styles.inputTitle}>Price: </Text>
@@ -125,14 +228,28 @@ const SellerHome = (props) => {
 
 
 
-      <View style={styles.buttonWrapper}>
+      {!props.route.params.userId && <View style={[styles.buttonWrapper, {justifyContent: 'space-between'}]}>
         {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
         {/*  <Text style={styles.textStyle}>Previous</Text>*/}
         {/*</TouchableOpacity>*/}
+        <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack()}>
+          <Text style={styles.textStyle}>Cansel</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
           <Text style={styles.textStyle}>Next</Text>
         </TouchableOpacity>
-      </View>
+
+      </View>}
+
+      {props.route.params.userId && <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%',}}>
+        <TouchableOpacity style={styles.cancel} onPress={() => props.navigation.goBack()}>
+          <Text style={{color: '#3eadac',textTransform:'uppercase', fontWeight: '500', fontSize: 15,}}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+          <Text style={styles.textStyle}>Update</Text>
+        </TouchableOpacity>
+
+      </View>}
     </View>
   )
 }
@@ -140,7 +257,6 @@ const SellerHome = (props) => {
 export default SellerHome
 const styles = StyleSheet.create({
   buttonWrap: {
-    backgroundColor: 'red',
     top: 100,
   },
   container: {
@@ -241,12 +357,22 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: 30,
-    width: width/2 - 30,
+    width: width/2 - 50,
     display: "flex",
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#3eadac',
+  },
+  cancel: {
+    marginTop: 30,
+    width: width / 2 - 30,
+    display: "flex",
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3eadac',
   },
   textStyle: {
     textTransform:'uppercase',

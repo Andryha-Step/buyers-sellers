@@ -1,90 +1,329 @@
 // components/dashboard.js
 
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, Button,AsyncStorage ,Platform, Dimensions} from 'react-native';
-import firebase from '../../database/fireBase';
-import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
-import { TouchableOpacity } from "react-native-gesture-handler";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Button,
+  Image,
+  Platform,
+  Dimensions,
+  ActivityIndicator,
+  BackHandler, ScrollView,
 
+} from "react-native";
+
+import { TouchableOpacity } from "react-native-gesture-handler";
+import auth from "@react-native-firebase/auth";
+import database from '@react-native-firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {width, height} = Dimensions.get('window')
+
+
 export default class ProfileScreen extends Component {
   constructor() {
     super();
     this.state = {
       value: 0,
+      user: null,
+      profileData: null,
+      userImage: null,
+      withoutPhoto: false,
     }
+    this.onAuthStateChanged = this.onAuthStateChanged.bind(this)
+
   }
 
   signOut = () => {
-    firebase.auth().signOut().then(() => {
-      AsyncStorage.setItem('Login', JSON.stringify(false) );
-      this.props.navigation.navigate('Login')
+    this.setState({
+      profileData: null,
+      user: null,
+      uId: null
     })
-      .catch(error => this.setState({ errorMessage: error.message }))
+    auth().signOut()
+    this.props.navigation.navigate('AuthStack')
+  }
+  componentDidMount() {
+    //this.signOut()
+    BackHandler.addEventListener("hardwareBackPress", this.onBackPress);
+    const subscriber = auth().onAuthStateChanged(this.onAuthStateChanged);
+    return subscriber; // unsubscribe on unmount
+  }
+  componentWillUnmount() {
+    BackHandler.removeEventListener("hardwareBackPress", this.onBackPress);
   }
 
+  componentWillReceiveProps(newProps) {
+    console.log(newProps.route.params.update, 'upfdfd')
+    if(newProps.route.params.update) {
+      this.onRefresh(this.state.uId)
+    }
+  }
 
+  onBackPress = () => {
+    if (this.state.profileData) {
+      return true;
+    }
+  };
+
+  onEdit = (profile) => {
+    if(this.state.profileData && this.state.profileData.userType == "Buyer" ) {
+      if(profile) {
+        console.log('tut',this.state.profileData)
+        this.props.navigation.navigate('BuyerRegister', { profileData: this.state.profileData })
+      } else {
+        this.props.navigation.navigate('BuyerHome', { profileData: this.state.profileData.homeParam })
+      }
+    } else  {
+      console.log(this.state.uId)
+      this.props.navigation.navigate('SellerRegister', { profileData: this.state.profileData , onRefresh: this.onRefresh, uId: this.state.uId})
+    }
+
+  }
+  onRefresh(id)  {
+    database()
+      .ref('users/' + id)
+      .once('value')
+      .then(snapshot => {
+        console.log('User data: ', snapshot.val());
+        if(snapshot.val() !== null ) {
+          console.log('tut')
+          this.setState({
+            profileData: snapshot.val(),
+          })
+        }
+
+      }).catch(error => console.log(error, 'user Data error'))
+
+  }
+  onAuthStateChanged(user) {
+
+    if(user) {
+
+      this.setState({
+        user: user,
+      })
+      database()
+        .ref('users/' + user.uid)
+        .once('value')
+        .then(snapshot => {
+          console.log('User data: ', snapshot.val());
+          if(snapshot.val() !== null ) {
+            this.setState({
+              profileData: snapshot.val(),
+              uId: user.uid,
+            })
+          }
+
+        }).catch(error => console.log(error, 'user Data error'))
+
+    }
+    if(!user) {
+      this.props.navigation.navigate('AuthStack')
+    }
+  }
+
+  renderHomeParam() {
+    let homeValues = []
+    if(this.state.profileData) {
+      const homeParam = [this.state.profileData.homeParam]
+      console.log(' this.state.profileData.homeParam',homeParam )
+      homeValues =  homeParam.map((item,index) => {
+        return <View style={{flexShrink: 1}}>
+          <View style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
+            <Text style={[styles.subTitle,{}]}>Bathrooms</Text>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.bathrooms[0]}</Text>
+              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.bathrooms[1]}</Text>
+            </View>
+          </View>
+          <View style={[styles.testWrapper, {merginTop: 0,paddingTop: 0}]}>
+            <Text style={[styles.subTitle,{}]}>Bedrooms</Text>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.bedrooms[0]}</Text>
+              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.bedrooms[1]}</Text>
+            </View>
+          </View>
+          <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
+            <Text style={[styles.subTitle,{}]}>Home Price</Text>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.homePrice[0]} $</Text>
+              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.homePrice[1]} $</Text>
+            </View>
+          </View>
+          <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
+            <Text style={[styles.subTitle,{}]}>Home Size</Text>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.homeSize[0]} sq.ft</Text>
+              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.homeSize[1]} sq.ft</Text>
+            </View>
+          </View>
+
+            <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
+              <Text style={[styles.subTitle,{}]}>Address</Text>
+              <View style={{flexDirection: 'row'}}>
+                <Text style={[styles.textStyle, {width: '50%'}]}>Neighborhood: {item.neighborhood}</Text>
+                <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Town: {item.town}</Text>
+              </View>
+            </View>
+
+        </View>
+      })
+
+    }
+
+    return homeValues
+
+  }
   render() {
 
-  console.log(this.props.route.params.userInfo.providerData)
+    // if (this.state.isLoading) {
+    //   return (
+    //       <View style={styles.preloader}>
+    //         <ActivityIndicator size="large" color="#9E9E9E" />
+    //       </View>
+    //   )
+    // }
+
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{this.props.route.params.userInfo.displayName}</Text>
-        <Text style={styles.textStyle}>{this.props.route.params.userInfo.email}</Text>
+        <ScrollView style={{width: width - 40,}}   showsVerticalScrollIndicator={false}>
+        {/*{this.state.profileData && this.state.profileData.userPhoto && this.state.profileData.userPhoto !== 'none' || this.state.profileData && this.state.profileData.photoURL   ?*/}
+        {/*  <View style={styles.userImage}>*/}
+        {/*    <Image source={{uri: this.state.profileData.userPhoto  ? this.state.profileData.userPhoto   : this.state.profileData.photoURL}} width={100} height={100} style={{borderRadius: 100,width: 100, height: 100}}/>*/}
+        {/*  </View>*/}
+
+        {/*  : <TouchableOpacity style={styles.userImage} onPress={() => selectPhoto()}>*/}
+        {/*    <Image style={{width: 100,height:100, resizeMode: 'contain'}} source={require('../assets/profile_photo.png')} />*/}
+        {/*  </TouchableOpacity>*/}
+        {/*}*/}
+
+        <Text style={styles.title}>{this.state.profileData ? this.state.profileData.firstName + ' ' +  this.state.profileData.lastName : null}</Text>
+        <Text style={[styles.textStyle, {textAlign: 'center'}]}>{this.state.profileData ? this.state.profileData.userType : ''}</Text>
+
+        <View style={styles.testWrapper}>
+          <Text style={styles.subTitle}>Email</Text>
+          <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.email : ''}</Text>
+        </View>
+        <View style={styles.testWrapper}>
+          <Text style={styles.subTitle}>Mobile Number</Text>
+          <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.mobileNumber : ''}</Text>
+        </View>
+          {this.state.profileData && this.state.profileData.userType == "Buyer" &&
+          <View style={styles.testWrapper}>
+            <Text style={styles.subTitle}>Financing</Text>
+            <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.financing : ''}</Text>
+          </View>
+          }
 
 
+          <TouchableOpacity style={[styles.logout, {backgroundColor: '#3eadac', padding: 10,borderColor: '#3eadac'}]} onPress={() => this.onEdit(true)}>
+            <Text style={[styles.textLogout, {color: '#fff'}]}>Edit Profile Data</Text>
+          </TouchableOpacity>
+          {this.state.profileData && this.state.profileData.userType == "Buyer" &&
+          <View style={[styles.testWrapper]}>
+            <Text style={[styles.subTitle, { textAlign: 'center', fontSize: 22, width: '100%' }]}>About Home</Text>
+
+            {this.renderHomeParam()}
+
+
+            <TouchableOpacity style={[styles.logout, {backgroundColor: '#3eadac',padding: 10, borderColor: '#3eadac'}]} onPress={() => this.onEdit()}>
+            <Text style={[styles.textLogout, {color: '#fff'}]}>Edit Home Data</Text>
+            </TouchableOpacity>
+          </View>
+          }
         <TouchableOpacity style={styles.logout} onPress={() => this.signOut()}>
           <Text style={styles.textLogout}>Logout</Text>
         </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  buttonWrap: {
-    backgroundColor: 'red',
-    top: 100,
-  },
-  logout: {
-    backgroundColor: '#3eadac',
-    padding: 10,
-    marginTop: 50,
-  },
-  textLogout: {
-    color: '#fff',
-    fontSize: 15,
-  },
   container: {
     flex: 1,
     display: "flex",
-    paddingTop: Platform.OS === 'ios' ?  130 : 50,
+    paddingTop: Platform.OS === 'ios' ?  100 : 50,
     justifyContent: 'flex-start',
-    alignItems: 'center',
-    padding: 35,
+    alignItems: 'flex-start',
+    padding: 30,
     backgroundColor: '#fff'
   },
+  subTitle: {
+    fontWeight: '600',
+    fontSize:  18,
+  },
+  buttonWrap: {
+    top: 100,
+  },
+  userImage: {
+    marginBottom: 20,
+  },
+  logout: {
+    width: width - 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+
+  textLogout: {
+    color: '#000',
+    fontSize: 17,
+  },
+
   title: {
     width: '100%',
-    fontSize: 20,
-    paddingBottom: 30,
+    fontSize: 30,
+    marginBottom: 0,
     textAlign: 'center',
     color: '#000',
   },
+
   submit: {
     marginTop: 30,
     width: width - 70,
     display: "flex",
-    height: 40,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#3eadac',
+    backgroundColor: '#21191A',
+    borderRadius: 25,
+  },
+  testWrapper: {
+    width: width - 60,
+    marginTop: 10,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    padding: 10,
+    paddingLeft: 0,
+    borderColor: '#3eadac',
   },
   textStyle: {
     width: '100%',
-    textAlign: 'center',
     color: '#000',
     fontSize: 15,
-  }
+    marginTop: 10,
+
+  },
+  preloader: {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
 });

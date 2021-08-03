@@ -1,7 +1,7 @@
 // components/dashboard.js
 
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Button, AsyncStorage, Dimensions, Platform,TextInput } from "react-native";
+import { StyleSheet, View, Text, Button, Dimensions, Platform,TextInput } from "react-native";
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 
@@ -19,7 +19,8 @@ const AboutRivenn = (props) => {
   const onSubmit = () => {
     if(understand && termsAgree) {
       setErrore(false)
-      props.navigation.navigate('PaymentScreen', {userInfo: props.route.params.userInfo})
+      console.log(props.route.params)
+      props.navigation.navigate('PaymentScreen', {userType: props.route.params.userType})
     } else {
       setErrore(true)
     }

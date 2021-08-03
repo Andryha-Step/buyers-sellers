@@ -1,12 +1,12 @@
 // components/dashboard.js
 
-import React, {useState}  from 'react';
-import { StyleSheet, View, Text,TextInput, Button,AsyncStorage ,ScrollView, Platform,Dimensions} from 'react-native';
+import React, {useState, useEffect}  from 'react';
+import { StyleSheet, View, Text,TextInput, Button,Alert,ScrollView, Platform,Dimensions} from 'react-native';
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import firebase from "../../database/fireBase";
 import auth from "@react-native-firebase/auth";
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {width, height} = Dimensions.get('window')
 
@@ -16,7 +16,7 @@ const radio_props = [
 
 ];
 
-const HomeRegister = (props) => {
+const BuyerHome = (props) => {
   const [radioValue, setRadioValue] = useState(0)
   const [town, setTown] = useState('')
   const [neighborhood, setNeighborhood] = useState('')
@@ -29,13 +29,44 @@ const HomeRegister = (props) => {
   const [minPrice, setMinPrice] =useState('')
   const [maxPrice, setMaxPrice] = useState('')
 
+
+  useEffect(() => {
+    if(props.route.params.profileData) {
+      const data = [props.route.params.profileData]
+
+      setTown(data[0].town)
+      setNeighborhood(data[0].neighborhood)
+      setBedroomsMin(data[0].bedrooms[0])
+      setBedroomsMax(data[0].bedrooms[1])
+      setBathroomsMin(data[0].bathrooms[0])
+      setBathroomsMax(data[0].bathrooms[1])
+      setMinSize(data[0].homeSize[0])
+      setMaxSize(data[0].homeSize[1])
+      setMinPrice(data[0].homePrice[0])
+      setMaxPrice(data[0].homePrice[1])
+    }
+  }, [props.route.params.profileData])
+
   const onSubmit = async () => {
-    const isLogged = await AsyncStorage.getItem('Login')
+    if(bedroomsMin.length == 0 ||
+      bedroomsMax.length == 0 ||
+      bathroomsMin.length == 0 ||
+      bathroomsMax.length == 0 ||
+      minSize.length == 0 ||
+      maxSize.length == 0 ||
+      minPrice.length == 0 ||
+      maxPrice.length == 0 ||
+      town.length == 0 ||
+      neighborhood.length == 0
+    ) {
+      Alert.alert('All fields are required')
+      return
+    }
     const userId = auth().currentUser.uid
     firebase
       .database()
       .ref('users/' + userId + '/homeParam/')
-      .push({
+      .set({
           town: town,
           neighborhood: neighborhood,
           bedrooms: [bedroomsMin, bedroomsMax],
@@ -45,16 +76,35 @@ const HomeRegister = (props) => {
       })
       .then((data) => {
         console.log('Saved Data', data)
-        if(isLogged == 'true') {
-          props.navigation.navigate('ProfileScreen')
-        } else {
-          props.navigation.navigate('AboutRivenn')
-        }
+
+        props.navigation.navigate('AboutRivenn', {userType: 'Buyer'} )
+
       })
       .catch((error) => {
         console.log('Storing Error', error)
       })
 
+  }
+  const onUpdate = () => {
+    const userId = auth().currentUser.uid
+    firebase
+      .database()
+      .ref('users/' + userId + '/homeParam/')
+      .set({
+        town: town,
+        neighborhood: neighborhood,
+        bedrooms: [bedroomsMin, bedroomsMax],
+        bathrooms: [bathroomsMin,bathroomsMax],
+        homeSize: [minSize, maxSize],
+        homePrice: [minPrice, maxPrice],
+      })
+      .then((data) => {
+        console.log('Saved Data', data)
+        props.navigation.navigate("ProfileScreen", {update: true})
+      })
+      .catch((error) => {
+        console.log('Storing Error', error)
+      })
   }
 console.log(props.route)
   return (
@@ -190,20 +240,27 @@ console.log(props.route)
 
 
 
-      <View style={styles.buttonWrapper}>
-        {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
-        {/*  <Text style={styles.textStyle}>Previous</Text>*/}
-        {/*</TouchableOpacity>*/}
-        <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-          <Text style={styles.textStyle}>Next</Text>
-        </TouchableOpacity>
+      <View style={[styles.buttonWrapper, {justifyContent: props.route.params.profileData ? 'space-between' : 'center'}]}>
+        {props.route.params.profileData && <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack()}>
+          <Text style={styles.textStyle}>Previous</Text>
+        </TouchableOpacity>}
+
+        {props.route.params.profileData ?
+          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+            <Text style={styles.textStyle}>Submit</Text>
+          </TouchableOpacity>
+          : <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+            <Text style={styles.textStyle}>Next</Text>
+          </TouchableOpacity>
+        }
+
       </View>
       </ScrollView>
     </View>
   )
 }
 
-export default HomeRegister
+export default BuyerHome
 const styles = StyleSheet.create({
   buttonWrap: {
     backgroundColor: 'red',
@@ -318,13 +375,13 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent:  'center',
     alignItems: 'center',
     width: '100%',
   },
   submit: {
     marginTop: 30,
-    width: width/2 - 30,
+    width: width/2 - 50,
     display: "flex",
     height: 40,
     justifyContent: 'center',

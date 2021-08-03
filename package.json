@@ -10,21 +10,29 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@react-native-community/async-storage": "^1.12.1",
+    "@react-native-async-storage/async-storage": "^1.15.4",
     "@react-native-community/masked-view": "^0.1.10",
+    "@react-native-firebase/app": "^11.5.0",
+    "@react-native-firebase/auth": "^11.5.0",
+    "@react-native-firebase/database": "^12.0.0",
+    "@react-navigation/bottom-tabs": "^5.11.11",
     "@react-navigation/native": "^5.9.4",
     "@react-navigation/stack": "^5.14.4",
     "firebase": "^8.4.1",
+    "geolib": "^3.3.1",
     "react": "17.0.1",
     "react-native": "0.64.0",
     "react-native-cli": "^2.0.1",
     "react-native-document-picker": "^5.0.3",
     "react-native-gesture-handler": "^1.10.3",
+    "react-native-google-places-autocomplete": "^2.2.0",
     "react-native-image-picker": "^3.3.2",
+    "react-native-maps": "^0.28.0",
     "react-native-reanimated": "^2.1.0",
     "react-native-safe-area-context": "^3.2.0",
     "react-native-screens": "^3.1.1",
-    "react-native-simple-radio-button": "^2.7.4"
+    "react-native-simple-radio-button": "^2.7.4",
+    "react-native-svg": "^12.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.13.15",
@@ -34,6 +42,7 @@
     "eslint": "^7.24.0",
     "jest": "^26.6.3",
     "metro-react-native-babel-preset": "^0.65.2",
+    "react-native-svg-transformer": "^0.14.3",
     "react-test-renderer": "17.0.1"
   },
   "jest": {

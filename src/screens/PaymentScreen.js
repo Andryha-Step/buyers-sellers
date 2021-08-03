@@ -1,10 +1,10 @@
 // components/dashboard.js
 
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Button, AsyncStorage, Dimensions, PLatform, TextInput, Platform } from "react-native";
+import { StyleSheet, View, Text, Button, Dimensions, PLatform, TextInput, Platform } from "react-native";
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const {width, height} = Dimensions.get('window')
@@ -13,8 +13,15 @@ const radio_props = [
   {label: 'premium: 14.99 / one time fee', value: 1 },
 ];
 
+
 const PaymentScreen = (props) => {
   const [value, setValue] = useState(0)
+
+  const onPaymentClick = () => {
+    props.route.params.userType == 'Buyer' ?
+      props.navigation.navigate('MainStackBuyer')
+     :props.navigation.navigate('MainStack')
+  }
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Payment</Text>
@@ -30,7 +37,7 @@ const PaymentScreen = (props) => {
         />
       </View>
 
-      <TouchableOpacity style={styles.submit} onPress={() => props.navigation.navigate('ProfileScreen', {userInfo: props.route.params.userInfo})}>
+      <TouchableOpacity style={styles.submit} onPress={() => onPaymentClick()}>
         <Text style={styles.textStyle}>I'ready to have Rivenn help me find a home</Text>
       </TouchableOpacity>
       {/*<Button*/}
@@ -45,7 +52,6 @@ const PaymentScreen = (props) => {
 export default PaymentScreen
 const styles = StyleSheet.create({
   buttonWrap: {
-    backgroundColor: 'red',
     top: 100,
   },
   container: {

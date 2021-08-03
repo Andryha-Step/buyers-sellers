@@ -1,85 +1,59 @@
 // App.js
 
-import * as React from 'react';
+import  React,  {useEffect, useState} from 'react';
+import auth from '@react-native-firebase/auth';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Login from './src/Login';
-import Signup from './src/SignUp';
-import Dashboard from './src/Dashboard';
-import BuyerRegister from "./src/screens/BuyerRegister";
-import SellerRegister from "./src/screens/SellerRegister";
-import HomeRegister from "./src/screens/HomeRegister";
-import AboutRivenn from "./src/screens/AboutRivenn";
-import PaymentScreen from "./src/screens/PaymentScreen";
-import SellerHome from "./src/screens/SellerHome";
-import ProfileScreen from "./src/screens/ProfileScreen";
-
-
+import database from "@react-native-firebase/database";
+import AppNavigation from "./src/AppNavigation";
+import firebase from './database/fireBase'
 
 const Stack = createStackNavigator();
 
-function MyStack() {
-  return (
-    <Stack.Navigator
-      initialRouteName="Dashboard"
-      screenOptions={{
-        headerShown: false,
-      }}>
-      {/*<Stack.Screen*/}
-      {/*  name="Signup"*/}
-      {/*  component={Signup}*/}
-      {/*  options={({ navigation }) => ({*/}
-      {/*    title: 'Awesome app',*/}
-      {/*    headerLeft: () => (*/}
-      {/*      <DrawerButton onPress={() => navigation.goBack()} />*/}
-      {/*    ),*/}
-      {/*  })}*/}
-      {/*/>*/}
-      <Stack.Screen
-        name="Login"
-        component={Login}
-      />
-      <Stack.Screen
-        name="ProfileScreen"
-        component={ProfileScreen}
-      />
-      <Stack.Screen
-        name="Dashboard"
-        component={Dashboard}
-      />
-      <Stack.Screen
-        name="BuyerRegister"
-        component={BuyerRegister}
-      />
-      <Stack.Screen
-        name="HomeRegister"
-        component={HomeRegister}
-      />
-      <Stack.Screen
-        name="SellerRegister"
-        component={SellerRegister}
-      />
-      <Stack.Screen
-        name="AboutRivenn"
-        component={AboutRivenn}
-      />
-      <Stack.Screen
-        name="PaymentScreen"
-        component={PaymentScreen}
-      />
-      <Stack.Screen
-        name="SellerHome"
-        component={SellerHome}
-      />
-    </Stack.Navigator>
-  );
-}
+
 
 export default function App() {
+  // Handle user state changes
+  const [isLogged, setIsLogged] = useState(false)
+  const [userType, setUserType] = useState(false)
+  const [initialRouteName, setInitialRouteName] = useState('None')
+
+  useEffect(async  () => {
+    const login = await  AsyncStorage.getItem('Login')
+
+    console.log('login', login)
+    try {
+      const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
+      return subscriber; // unsubscribe on unmount
+    } catch (error) {console.log(error)}
+
+
+  }, []);
+
+  const onAuthStateChanged = (user) => {
+    if(user) {
+      database()
+        .ref('users/' + user.uid)
+        .once('value')
+        .then(snapshot => {
+          if(snapshot.val() !== null ) {
+            setUserType(snapshot.val().userType)
+            setInitialRouteName(snapshot.val().userType === 'Seller' ? 'MainStack' : 'MainStackBuyer')
+          } else {
+            console.log(user, 'user not register')
+            setInitialRouteName('AuthStack')
+          }
+        }).catch(error => console.log(error, 'user Data error'))
+    } else {
+      setInitialRouteName('AuthStack')
+    }
+  }
+  if (initialRouteName === 'None') return null
   return (
     <NavigationContainer>
-      <MyStack />
+      <AppNavigation initialRouteName={initialRouteName} />
     </NavigationContainer>
   );
 }

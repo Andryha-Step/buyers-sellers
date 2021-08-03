@@ -1,15 +1,20 @@
 // components/dashboard.js
 import React, { useEffect,useState } from 'react';
-import { StyleSheet, View, Text, Button,AsyncStorage ,Platform, Dimensions, Image} from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Button,
+  Platform,
+  Dimensions,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import MapView, { Marker } from 'react-native-maps';
 import firebase from '../../../database/fireBase';
 import database from "@react-native-firebase/database";
 import auth from "@react-native-firebase/auth";
 import { useIsFocused } from '@react-navigation/native';
-
-
-
-
 
 
 
@@ -20,6 +25,10 @@ const MapScreen = (props) => {
   const [userId , setUserId] = useState(null)
   const [userData , setUserData] = useState(null)
   const [addressList, setAddressList] = useState([])
+  const [addMode, setAddMode] = useState(false)
+  const [newMarker, setNewMarker ] = useState({ latitude: 50.4501, longitude: 30.523, latitudeDelta: 0.5, longitudeDelta: 0.5 })
+  const [buyerMarkers, setBuyerMarkers] = useState([])
+
 
   useEffect(() => {
     database()
@@ -42,16 +51,29 @@ const MapScreen = (props) => {
       .ref('users/' + userId)
       .once('value')
       .then(snapshot => {
-        console.log('User Map screen: ', snapshot.val());
+        //console.log('User Map screen: ', snapshot.val());
         if(snapshot.val() !== null ) {
           setUserData(snapshot.val())
           setAddressList([snapshot.val().homes])
         } else {
-          console.log( 'user not register')
+        //  console.log( 'user not register')
         }
 
       }).catch(error => console.log(error, 'user Data error'))
   }, [userId])
+
+  useEffect(() => {
+    if(addMode) {
+      database()
+        .ref('desire_homes/')
+        .once('value')
+        .then(snapshot => {
+          if(snapshot.val() !== null ) {
+            setBuyerMarkers(Object.values(snapshot.val()))
+          }
+        })
+    }
+  }, [addMode])
 
   const onAuthStateChanged = (user) => {
 
@@ -62,36 +84,76 @@ const MapScreen = (props) => {
       props.navigation.navigate('Login')
     }
   }
-    const markerList = addressList.map(item => Object.values(item))
+  const  changeMode = () => {
+    setAddMode(addMode ? false : true)
+  }
+  let markerList = []
+
+  if(addressList[0] !== undefined) {
+    markerList = addressList.map(item => Object.values(item))
+  }
+
     return (
       <View style={styles.container}>
-        <MapView
-          style={{ flex: 1 }}
-          initialRegion={{
-            latitude: 50.4501,
-            longitude: 30.523,
-            latitudeDelta: 0.5,
-            longitudeDelta: 0.5
-          }}
-        >
-          {markerList.flat().map((marker, index) => (
-            <Marker
-              key={index}
-              coordinate={{
-                latitude: marker.coordinate.lat,
-                longitude: marker.coordinate.lng
-              }}
-              title={marker.address}
-            >
-              <Image
-                source={require('../../assets/seller-marker.png')}
-                style={{width: 20, height: 30}}
-                resizeMode="contain"
-              />
-            </Marker>
-          ))}
+        <TouchableOpacity style={addMode ? styles.addAddress : styles.addAddressMOde }   onPress={() => changeMode()}>
+          {addMode ?
+              <Image style={{width: 30,height: 30}} source={require('../../assets/house-empt.png')}/>
+            : <Image style={{width: 30,height: 30}} source={require('../../assets/house-Icon.png')}/>
+          }
+        </TouchableOpacity>
 
-        </MapView>
+        {addMode ?
+          <MapView  style={{ flex: 1, }} region={newMarker}>
+            {
+              buyerMarkers.map((marker, i) => (
+                <Marker
+                  key={i}
+                  coordinate={{
+                    latitude: marker.latitude,
+                    longitude: marker.longitude
+                  }}
+                  title={marker.address}
+                  onPress={(e) => {e.stopPropagation();}}
+                >
+                  <Image
+                    source={require('../../assets/seller-marker.png')}
+                    style={{width: 20, height: 30}}
+                    resizeMode="contain"
+                  />
+                </Marker>
+              ))
+            }
+          </MapView>
+         :  <MapView
+            style={{ flex: 1 }}
+            initialRegion={{
+              latitude: 50.4501,
+              longitude: 30.523,
+              latitudeDelta: 0.5,
+              longitudeDelta: 0.5
+            }}
+          >
+            {markerList.flat().map((marker, index) => {
+
+              return (
+                <Marker
+                  key={index}
+                  coordinate={{
+                    latitude: marker.coordinate.lat,
+                    longitude: marker.coordinate.lng
+                  }}
+                  title={marker.address}
+                >
+                  <Image
+                    source={require('../../assets/buyer-marker.png')}
+                    style={{width: 30, height: 40}}
+
+                  />
+                </Marker>
+              )})}
+
+          </MapView>
+        }
 
       </View>
     );
@@ -100,7 +162,6 @@ const MapScreen = (props) => {
 
 const styles = StyleSheet.create({
   buttonWrap: {
-    backgroundColor: 'red',
     top: 100,
   },
   logout: {
@@ -114,7 +175,30 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: 'red',
+  },
+  addAddress: {
+    position: 'absolute',
+    right: Platform.OS == 'ios' ? 30 : 20,
+    top: Platform.OS == 'ios' ?  60 : 40,
+    zIndex: 1,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#3eadac',
+    borderRadius: 100,
+  },
+  addAddressMOde: {
+    position: 'absolute',
+    right: Platform.OS == 'ios' ? 30 : 20,
+    top: Platform.OS == 'ios' ?  60 : 40,
+    zIndex: 1,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 100,
   },
   map: {
     position: 'absolute',

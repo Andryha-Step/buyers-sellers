@@ -1,11 +1,11 @@
 // components/dashboard.js
 
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, Button,AsyncStorage ,Platform, Dimensions} from 'react-native';
+import { StyleSheet, View, Text, Button ,Platform, Dimensions} from 'react-native';
 import firebase from '../database/fireBase';
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const radio_props = [
   {label: 'I want to buy a home', value: 0 },
@@ -21,32 +21,21 @@ export default class Dashboard extends Component {
     }
   }
 
-  signOut = () => {
-    firebase.auth().signOut().then(() => {
-      AsyncStorage.setItem('Login', JSON.stringify(false) );
-      this.props.navigation.navigate('Login')
-    })
-      .catch(error => this.setState({ errorMessage: error.message }))
-  }
-
-
   async componentDidMount() {
 
   }
 
   onCheck = (value) => {
-
     this.setState({
       value: value,
     })
-
   }
   onSubmit = () => {
 
     if( this.state.value === 1) {
-      this.props.navigation.navigate('SellerRegister')
+      this.props.navigation.navigate('SellerRegister', { profileData: false })
     } else {
-      this.props.navigation.navigate('BuyerRegister')
+      this.props.navigation.navigate('BuyerRegister', { profileData: false })
     }
   }
   render() {
@@ -69,11 +58,12 @@ export default class Dashboard extends Component {
         <TouchableOpacity style={styles.submit} onPress={this.onSubmit}>
           <Text style={styles.textStyle}>Submit</Text>
         </TouchableOpacity>
-        {/*<Button*/}
-        {/*  color="#3740FE"*/}
-        {/*  title="Logout"*/}
-        {/*  onPress={() => this.signOut()}*/}
-        {/*/>*/}
+
+        <Text
+          style={styles.loginText}
+          onPress={() => this.props.navigation.navigate('Login')}>
+          Already have account? Click here to login
+        </Text>
       </View>
     );
   }
@@ -84,7 +74,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     top: 100,
   },
-
+  loginText: {
+    width: '100%',
+    color: '#000',
+    marginTop: 25,
+    opacity: 0.5,
+    textAlign: 'center',
+  },
   container: {
     flex: 1,
     display: "flex",

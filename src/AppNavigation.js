@@ -3,17 +3,89 @@ import {Text, Image, View, TouchableOpacity, ImageBackground, StyleSheet} from '
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MapScreen from "./screens/Seller/MapScreen";
+import MapScreenBuyer from "./screens/Buyer/MapScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 
-import ProfileIcon from '../src/assets/user.svg'
+import ProfileIcon from '../src/assets/user.png'
+import ProfileIconWhite from '../src/assets/profile-white.png'
+import PropertyIcon from '../src/assets/property.png'
+import PropertyIconWhite from '../src/assets/property-white.png'
+import MapIcon from '../src/assets/map.png'
+import MapIconWhite from '../src/assets/map-white.png'
 import Login from "./Login";
 import SellerHome from "../src/screens/SellerHome";
 import AddressScreen from "./screens/AddressScreen";
 import PropertyScreen from "./screens/Seller/PropertyScreen";
+import Dashboard from "./Dashboard";
+import BuyerRegister from "./screens/BuyerRegister";
+import BuyerHome from "./screens/BuyerHome";
+import SellerRegister from "./screens/SellerRegister";
+import AboutRivenn from "./screens/AboutRivenn";
+import PaymentScreen from "./screens/PaymentScreen";
 
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
+
+
+function AuthStack() {
+  return (
+    <Stack.Navigator
+      initialRouteName="Login"
+      screenOptions={{
+        headerShown: false,
+      }}>
+      {/*<Stack.Screen*/}
+      {/*  name="Signup"*/}
+      {/*  component={Signup}*/}
+      {/*  options={({ navigation }) => ({*/}
+      {/*    title: 'Awesome app',*/}
+      {/*    headerLeft: () => (*/}
+      {/*      <DrawerButton onPress={() => navigation.goBack()} />*/}
+      {/*    ),*/}
+      {/*  })}*/}
+      {/*/>*/}
+      <Stack.Screen
+        name="Login"
+        component={Login}
+      />
+      <Stack.Screen
+        name="Dashboard"
+        component={Dashboard}
+      />
+      <Stack.Screen
+        name="BuyerRegister"
+        component={BuyerRegister}
+      />
+      <Stack.Screen
+        name="HomeRegister"
+        component={BuyerHome}
+      />
+
+      <Stack.Screen
+        name="SellerRegister"
+        component={SellerRegister}
+      />
+      <Stack.Screen
+        name="AboutRivenn"
+        component={AboutRivenn}
+      />
+      <Stack.Screen
+        name="AddressScreen"
+        component={AddressScreen}
+      />
+      <Stack.Screen
+        name="PaymentScreen"
+        component={PaymentScreen}
+      />
+      <Stack.Screen
+        name="SellerHome"
+        component={SellerHome}
+      />
+    </Stack.Navigator>
+  );
+}
 
 function ProfileStack() {
   return (
@@ -36,8 +108,20 @@ function ProfileStack() {
         component={Login}
       />
       <Stack.Screen
+        name="BuyerHome"
+        component={BuyerHome}
+      />
+      <Stack.Screen
+        name="BuyerRegister"
+        component={BuyerRegister}
+      />
+      <Stack.Screen
         name="SellerHome"
         component={SellerHome}
+      />
+      <Stack.Screen
+        name="SellerRegister"
+        component={SellerRegister}
       />
       <Stack.Screen
         name="AddressScreen"
@@ -63,10 +147,7 @@ function PropertyStack() {
           gestureEnabled: false
         }}
       />
-      <Stack.Screen
-        name="Login"
-        component={Login}
-      />
+
       <Stack.Screen
         name="SellerHome"
         component={SellerHome}
@@ -99,12 +180,31 @@ function MapStack() {
     </Stack.Navigator>
   );
 }
+function MapStackBuyer() {
+  return (
+    <Stack.Navigator
+      initialRouteName={'MapScreen'}
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true
+      }}
+    >
+      <Stack.Screen
+        name="MapScreen"
+        component={MapScreenBuyer}
+        options={{
+          gestureEnabled: false
+        }}
+      />
 
+    </Stack.Navigator>
+  );
+}
 
-function BottomTabs() {
+function BottomTabsSeller() {
   return (
     <Tab.Navigator
-      initialRouteName={'Dashboard'}
+      initialRouteName={'MapScreen'}
       activeColor="rgba(97, 109, 120, 0.6)"
       tabBarOptions={{
         showIcon: true,
@@ -131,21 +231,24 @@ function BottomTabs() {
       shifting={false}
     >
       <Tab.Screen
-        name="Map"
+        name="MapScreen"
         component={MapStack}
         options={{
           tabBarLabel: 'Map',
-          // tabBarIcon: ({ focused, color }) =>
-          //   focused ?  <ProfileIcon fill={'#fff'} /> : <ProfileIcon  />
+          tabBarIcon: ({ focused, color }) => focused ?
+              <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIconWhite}/>
+            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIcon}/>
         }}
+
       />
       <Tab.Screen
-        name="Property"
+        name="PropertyScreen"
         component={PropertyStack}
         options={{
           tabBarLabel: 'Property',
-          // tabBarIcon: ({ focused, color }) =>
-          //   focused ?  <ProfileIcon fill={'#fff'} /> : <ProfileIcon  />
+          tabBarIcon: ({ focused, color }) => focused ?
+            <Image style={{width: 25,marginBottom: 5, height: 25}} source={PropertyIconWhite}/>
+            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={PropertyIcon}/>
         }}
       />
       <Tab.Screen
@@ -153,26 +256,83 @@ function BottomTabs() {
         component={ProfileStack}
         options={{
           tabBarLabel: 'Profile',
-          // tabBarIcon: ({ focused, color }) => focused ?  <ProfileIcon fill={'#fff'} /> : <ProfileIcon fill={"#000"} />
+          tabBarIcon: ({ focused, color }) => focused ?
+              <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIconWhite}/>
+            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIcon}/>
         }}
       />
     </Tab.Navigator>
   );
 }
 
-const SellerNavigator = (props) => {
+function BottomTabsBuyer() {
+  return (
+    <Tab.Navigator
+      initialRouteName={'Map'}
+      activeColor="rgba(97, 109, 120, 0.6)"
+      tabBarOptions={{
+        showIcon: true,
+        activeTintColor: '#fff',
+        inactiveTintColor: '#000',
+        activeBackgroundColor: '#3eadac',
+        inactiveBackgroundColor: 'rgba(62, 173, 172, 0.7)',
+        tabStyle: {
+          height: 80,
+          padding: 10,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        labelStyle: {
+          fontSize: 15,
+        },
+        style: {
+          height: 80,
+          bottom: 0,
+          elevation: 0,
+          borderTopWidth: 0
+        }
+      }}
+      shifting={false}
+    >
+      <Tab.Screen
+        name="Map"
+        component={MapStackBuyer}
+        options={{
+          tabBarLabel: 'Map',
+          tabBarIcon: ({ focused, color }) => focused ?
+              <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIconWhite}/>
+            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIcon}/>
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ focused, color }) => focused ?
+              <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIconWhite}/>
+            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIcon}/>
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+const AppNavigator = (props) => {
+  console.log('stack',props.initialRouteName )
   return (
     <Stack.Navigator
-      initialRouteName={'MapScreen'}
+      initialRouteName={props.initialRouteName}
       screenOptions={{
         headerShown: false,
         gestureEnabled: false
       }}
     >
-      <Stack.Screen name="MainStack" component={BottomTabs} />
+      <Stack.Screen name="AuthStack" component={AuthStack} />
+      <Stack.Screen name="MainStack" component={BottomTabsSeller} />
+      <Stack.Screen name="MainStackBuyer" component={BottomTabsBuyer} />
     </Stack.Navigator>
   );
 };
 
 
-export default SellerNavigator;
+export default AppNavigator;

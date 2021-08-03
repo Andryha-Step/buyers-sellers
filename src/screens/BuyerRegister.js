@@ -1,20 +1,22 @@
 // components/dashboard.js
 
-import React, {useState}  from 'react';
+import React, {useState,useEffect}  from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   Button,
-  AsyncStorage,
   Dimensions,
   Platform,
   ScrollView, Alert,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import firebase from '../../database/fireBase'
+import auth from '@react-native-firebase/auth';
+import database from "@react-native-firebase/database";
 
 const {width, height} = Dimensions.get('window')
 
@@ -40,6 +42,17 @@ const BuyerRegister = (props) => {
   const [password, setPassword] = useState('')
   const [describe, setDescribe] = useState('')
 
+
+  useEffect(() => {
+    if(props.route.params.profileData) {
+      console.log(props.route.params.profileData,'tut')
+      setFirstName(props.route.params.profileData.firstName)
+      setLastName(props.route.params.profileData.lastName)
+      setEmail(props.route.params.profileData.email)
+      setMobile(props.route.params.profileData.mobileNumber)
+    }
+  }, [props.route.params.profileData])
+
   const validateEmail = (email) => {
     console.log(email);
     let reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
@@ -56,11 +69,16 @@ const BuyerRegister = (props) => {
     }
   }
   const registerUser = () => {
-    if(email === '' || password === '') {
-      Alert.alert('Enter details to signup!')
+    if(email === '' ||
+      password === '' ||
+      firstName === '' ||
+      lastName === '' ||
+      mobile === ''
+
+    ) {
+      Alert.alert('All fields are required!')
     } else {
-      firebase
-        .auth()
+        auth()
         .createUserWithEmailAndPassword(email, password)
         .then((res) => {
           res.user.updateProfile({
@@ -70,7 +88,6 @@ const BuyerRegister = (props) => {
           })
           console.log('registered', res.user.uid)
           setIsLogged(true)
-          AsyncStorage.setItem('Login', JSON.stringify(isLogged))
           if(res.user.uid) {
             const userId = res.user.uid
             firebase
@@ -85,7 +102,7 @@ const BuyerRegister = (props) => {
                 financing: radioValue,
               })
               .then((data) => {
-                props.navigation.navigate('HomeRegister', {uid: userId, userInfo: res.user})
+                props.navigation.navigate('HomeRegister', { profileData: false })
               })
               .catch((error) => {
                 console.log('Storing Error', error)
@@ -113,16 +130,40 @@ const BuyerRegister = (props) => {
         })
     }
   }
+  const onUpdate = () => {
+    const userId = auth().currentUser.uid
 
+    auth().currentUser
+      .updateEmail(email).then(function() {
+      console.log('emsil updated')
+    }).catch(function(error) {
+      console.log('error emsil updated', error)
+      Alert.alert(error)
+    });
+
+    firebase
+      .database()
+      .ref('users/' + userId + '/' )
+      .update({
+        firstName: firstName,
+        lastName: lastName,
+        userType: 'Buyer',
+        email: email,
+        mobileNumber: mobile,
+        financing: radioValue,
+        }
+      ).then(() => {
+      props.navigation.navigate("ProfileScreen", {update: true})
+    })
+  }
   const onSubmit = () => {
     registerUser()
-
   }
 
   return (
     <View style={styles.container}>
       <ScrollView style={{width: width - 40,}}  showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Register as Buyer</Text>
+      <Text style={styles.title}>{props.route.params.profileData !== false ? 'Edit Profile' : 'Register as Buyer' }</Text>
 
       <View style={styles.wrapper}>
         <View style={styles.inputItem}>
@@ -160,7 +201,7 @@ const BuyerRegister = (props) => {
             value={mobile}
           />
         </View>
-        <View style={styles.inputItem}>
+        {!props.route.params.profileData && <View style={styles.inputItem}>
           <Text style={styles.inputTitle}>Password: </Text>
           <TextInput
             style={styles.input}
@@ -169,7 +210,7 @@ const BuyerRegister = (props) => {
             maxLength={15}
             secureTextEntry={true}
           />
-        </View>
+        </View>}
 
 
         <View style={styles.radioItem}>
@@ -221,9 +262,16 @@ const BuyerRegister = (props) => {
         <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>
           <Text style={styles.textStyle}>Previous</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-          <Text style={styles.textStyle}>Next</Text>
-        </TouchableOpacity>
+
+        {props.route.params.profileData ?
+          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+            <Text style={styles.textStyle}>Submit</Text>
+          </TouchableOpacity>
+        : <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+            <Text style={styles.textStyle}>Next</Text>
+          </TouchableOpacity>
+        }
+
       </View>
       </ScrollView>
     </View>
