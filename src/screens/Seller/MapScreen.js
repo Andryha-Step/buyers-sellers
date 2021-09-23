@@ -1,5 +1,5 @@
 // components/dashboard.js
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,15 +18,15 @@ import { useIsFocused } from '@react-navigation/native';
 
 
 
-const {width, height} = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 const MapScreen = (props) => {
   const isFocused = useIsFocused();
 
-  const [userId , setUserId] = useState(null)
-  const [userData , setUserData] = useState(null)
+  const [userId, setUserId] = useState(null)
+  const [userData, setUserData] = useState(null)
   const [addressList, setAddressList] = useState([])
   const [addMode, setAddMode] = useState(false)
-  const [newMarker, setNewMarker ] = useState({ latitude: 50.4501, longitude: 30.523, latitudeDelta: 0.5, longitudeDelta: 0.5 })
+  const [newMarker, setNewMarker] = useState({ latitude: 50.4501, longitude: 30.523, latitudeDelta: 0.5, longitudeDelta: 0.5 })
   const [buyerMarkers, setBuyerMarkers] = useState([])
 
 
@@ -35,12 +35,13 @@ const MapScreen = (props) => {
       .ref('users/' + userId)
       .once('value')
       .then(snapshot => {
-        if(snapshot.val() !== null ) {
+        if (snapshot.val() !== null) {
           setUserData(snapshot.val())
           setAddressList([snapshot.val().homes])
         }
       }).catch(error => console.log(error, 'user Data error'))
   }, [isFocused])
+
   useEffect(() => {
     const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
     return subscriber; // unsubscribe on unmount
@@ -52,23 +53,23 @@ const MapScreen = (props) => {
       .once('value')
       .then(snapshot => {
         //console.log('User Map screen: ', snapshot.val());
-        if(snapshot.val() !== null ) {
+        if (snapshot.val() !== null) {
           setUserData(snapshot.val())
           setAddressList([snapshot.val().homes])
         } else {
-        //  console.log( 'user not register')
+          //  console.log( 'user not register')
         }
 
       }).catch(error => console.log(error, 'user Data error'))
   }, [userId])
 
   useEffect(() => {
-    if(addMode) {
+    if (addMode) {
       database()
         .ref('desire_homes/')
         .once('value')
         .then(snapshot => {
-          if(snapshot.val() !== null ) {
+          if (snapshot.val() !== null) {
             setBuyerMarkers(Object.values(snapshot.val()))
           }
         })
@@ -77,87 +78,88 @@ const MapScreen = (props) => {
 
   const onAuthStateChanged = (user) => {
 
-    if(user) {
+    if (user) {
       setUserId(user.uid)
     }
-    if(!user) {
+    if (!user) {
       props.navigation.navigate('Login')
     }
   }
-  const  changeMode = () => {
+  const changeMode = () => {
     setAddMode(addMode ? false : true)
   }
   let markerList = []
 
-  if(addressList[0] !== undefined) {
+  if (addressList[0] !== undefined) {
     markerList = addressList.map(item => Object.values(item))
   }
 
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity style={addMode ? styles.addAddress : styles.addAddressMOde }   onPress={() => changeMode()}>
-          {addMode ?
-              <Image style={{width: 30,height: 30}} source={require('../../assets/house-empt.png')}/>
-            : <Image style={{width: 30,height: 30}} source={require('../../assets/house-Icon.png')}/>
-          }
-        </TouchableOpacity>
-
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity style={addMode ? styles.addAddress : styles.addAddressMOde} onPress={() => changeMode()}>
         {addMode ?
-          <MapView  style={{ flex: 1, }} region={newMarker}>
-            {
-              buyerMarkers.map((marker, i) => (
-                <Marker
-                  key={i}
-                  coordinate={{
-                    latitude: marker.latitude,
-                    longitude: marker.longitude
-                  }}
-                  title={marker.address}
-                  onPress={(e) => {e.stopPropagation();}}
-                >
-                  <Image
-                    source={require('../../assets/seller-marker.png')}
-                    style={{width: 20, height: 30}}
-                    resizeMode="contain"
-                  />
-                </Marker>
-              ))
-            }
-          </MapView>
-         :  <MapView
-            style={{ flex: 1 }}
-            initialRegion={{
-              latitude: 50.4501,
-              longitude: 30.523,
-              latitudeDelta: 0.5,
-              longitudeDelta: 0.5
-            }}
-          >
-            {markerList.flat().map((marker, index) => {
-
-              return (
-                <Marker
-                  key={index}
-                  coordinate={{
-                    latitude: marker.coordinate.lat,
-                    longitude: marker.coordinate.lng
-                  }}
-                  title={marker.address}
-                >
-                  <Image
-                    source={require('../../assets/buyer-marker.png')}
-                    style={{width: 30, height: 40}}
-
-                  />
-                </Marker>
-              )})}
-
-          </MapView>
+          <Image style={{ width: 30, height: 30 }} source={require('../../assets/house-empt.png')} />
+          : <Image style={{ width: 30, height: 30 }} source={require('../../assets/house-Icon.png')} />
         }
+      </TouchableOpacity>
 
-      </View>
-    );
-  }
+      {addMode ?
+        <MapView style={{ flex: 1, }} region={newMarker}>
+          {
+            buyerMarkers.map((marker, i) => (
+              <Marker
+                key={i}
+                coordinate={{
+                  latitude: marker.latitude,
+                  longitude: marker.longitude
+                }}
+                title={marker.address}
+                onPress={(e) => { e.stopPropagation(); }}
+              >
+                <Image
+                  source={require('../../assets/seller-marker.png')}
+                  style={{ width: 20, height: 30 }}
+                  resizeMode="contain"
+                />
+              </Marker>
+            ))
+          }
+        </MapView>
+        : <MapView
+          style={{ flex: 1 }}
+          initialRegion={{
+            latitude: 50.4501,
+            longitude: 30.523,
+            latitudeDelta: 0.5,
+            longitudeDelta: 0.5
+          }}
+        >
+          {markerList.flat().map((marker, index) => {
+
+            return (
+              <Marker
+                key={index}
+                coordinate={{
+                  latitude: marker.coordinate.lat,
+                  longitude: marker.coordinate.lng
+                }}
+                title={marker.address}
+              >
+                <Image
+                  source={require('../../assets/buyer-marker.png')}
+                  style={{ width: 30, height: 40 }}
+
+                />
+              </Marker>
+            )
+          })}
+
+        </MapView>
+      }
+
+    </View>
+  );
+}
 
 
 const styles = StyleSheet.create({
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
   addAddress: {
     position: 'absolute',
     right: Platform.OS == 'ios' ? 30 : 20,
-    top: Platform.OS == 'ios' ?  60 : 40,
+    top: Platform.OS == 'ios' ? 60 : 40,
     zIndex: 1,
     width: 50,
     height: 50,
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
   addAddressMOde: {
     position: 'absolute',
     right: Platform.OS == 'ios' ? 30 : 20,
-    top: Platform.OS == 'ios' ?  60 : 40,
+    top: Platform.OS == 'ios' ? 60 : 40,
     zIndex: 1,
     width: 50,
     height: 50,

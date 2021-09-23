@@ -19,8 +19,12 @@ import auth from "@react-native-firebase/auth";
 import database from '@react-native-firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const {width, height} = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 
+const paymentTypes = {
+  'standard': 'Standard one time fee',
+  'premium': 'Premium one time fee'
+}
 
 export default class ProfileScreen extends Component {
   constructor() {
@@ -57,7 +61,7 @@ export default class ProfileScreen extends Component {
 
   componentWillReceiveProps(newProps) {
     console.log(newProps.route.params.update, 'upfdfd')
-    if(newProps.route.params.update) {
+    if (newProps.route.params.update) {
       this.onRefresh(this.state.uId)
     }
   }
@@ -69,26 +73,30 @@ export default class ProfileScreen extends Component {
   };
 
   onEdit = (profile) => {
-    if(this.state.profileData && this.state.profileData.userType == "Buyer" ) {
-      if(profile) {
-        console.log('tut',this.state.profileData)
+    if (this.state.profileData && this.state.profileData.userType == "Buyer") {
+      if (profile) {
+        console.log('tut', this.state.profileData)
         this.props.navigation.navigate('BuyerRegister', { profileData: this.state.profileData })
       } else {
         this.props.navigation.navigate('BuyerHome', { profileData: this.state.profileData.homeParam })
       }
-    } else  {
+    } else {
       console.log(this.state.uId)
-      this.props.navigation.navigate('SellerRegister', { profileData: this.state.profileData , onRefresh: this.onRefresh, uId: this.state.uId})
+      this.props.navigation.navigate('SellerRegister', { profileData: this.state.profileData, onRefresh: this.onRefresh, uId: this.state.uId })
     }
-
   }
-  onRefresh(id)  {
+
+  onUpgrade() {
+    this.props.navigation.navigate('PaymentScreen', { context: 'upgrade' })
+  }
+
+  onRefresh(id) {
     database()
       .ref('users/' + id)
       .once('value')
       .then(snapshot => {
         console.log('User data: ', snapshot.val());
-        if(snapshot.val() !== null ) {
+        if (snapshot.val() !== null) {
           console.log('tut')
           this.setState({
             profileData: snapshot.val(),
@@ -99,81 +107,94 @@ export default class ProfileScreen extends Component {
 
   }
   onAuthStateChanged(user) {
-
-    if(user) {
+    if (user) {
 
       this.setState({
         user: user,
       })
-      database()
+
+      // unsubscribe before subscribing
+      if (this.db_subscriber) this.db_subscriber();
+
+      this.db_subscriber = database()
         .ref('users/' + user.uid)
-        .once('value')
-        .then(snapshot => {
+        .on('value', snapshot => {
+          if (!snapshot) return;
           console.log('User data: ', snapshot.val());
-          if(snapshot.val() !== null ) {
+          if (snapshot.val() !== null) {
             this.setState({
               profileData: snapshot.val(),
               uId: user.uid,
             })
           }
 
-        }).catch(error => console.log(error, 'user Data error'))
-
+        })
     }
-    if(!user) {
+    if (!user) {
       this.props.navigation.navigate('AuthStack')
     }
   }
 
   renderHomeParam() {
     let homeValues = []
-    if(this.state.profileData) {
+    if (this.state.profileData) {
       const homeParam = [this.state.profileData.homeParam]
-      console.log(' this.state.profileData.homeParam',homeParam )
-      homeValues =  homeParam.map((item,index) => {
-        return <View style={{flexShrink: 1}}>
-          <View style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
-            <Text style={[styles.subTitle,{}]}>Bathrooms</Text>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.bathrooms[0]}</Text>
-              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.bathrooms[1]}</Text>
-            </View>
-          </View>
-          <View style={[styles.testWrapper, {merginTop: 0,paddingTop: 0}]}>
-            <Text style={[styles.subTitle,{}]}>Bedrooms</Text>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.bedrooms[0]}</Text>
-              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.bedrooms[1]}</Text>
-            </View>
-          </View>
-          <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
-            <Text style={[styles.subTitle,{}]}>Home Price</Text>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.homePrice[0]} $</Text>
-              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.homePrice[1]} $</Text>
-            </View>
-          </View>
-          <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
-            <Text style={[styles.subTitle,{}]}>Home Size</Text>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={[styles.textStyle, {width: '50%'}]}>MIn: {item.homeSize[0]} sq.ft</Text>
-              <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Max: {item.homeSize[1]} sq.ft</Text>
-            </View>
-          </View>
-
-            <View style={[styles.testWrapper, { merginTop: 0,paddingTop: 0}]}>
-              <Text style={[styles.subTitle,{}]}>Address</Text>
-              <View style={{flexDirection: 'row'}}>
-                <Text style={[styles.textStyle, {width: '50%'}]}>Neighborhood: {item.neighborhood}</Text>
-                <Text style={[styles.textStyle,{width: '50%',textAlign: 'right'}]}>Town: {item.town}</Text>
+      console.log(' this.state.profileData.homeParam', homeParam)
+      homeValues = homeParam.filter(item => !!item).map((item, index) => {
+        return <View style={{ flexShrink: 1 }}>
+          {
+            item.bathrooms && <View style={[styles.testWrapper, { merginTop: 0, paddingTop: 0 }]}>
+              <Text style={[styles.subTitle, {}]}>Bathrooms</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={[styles.textStyle, { width: '50%' }]}>MIn: {item.bathrooms[0]}</Text>
+                <Text style={[styles.textStyle, { width: '50%', textAlign: 'right' }]}>Max: {item.bathrooms[1]}</Text>
               </View>
             </View>
-
+          }
+          {
+            item.bedrooms && <View style={[styles.testWrapper, { merginTop: 0, paddingTop: 0 }]}>
+              <Text style={[styles.subTitle, {}]}>Bedrooms</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={[styles.textStyle, { width: '50%' }]}>MIn: {item.bedrooms[0]}</Text>
+                <Text style={[styles.textStyle, { width: '50%', textAlign: 'right' }]}>Max: {item.bedrooms[1]}</Text>
+              </View>
+            </View>
+          }
+          {
+            item.homePrice && <View style={[styles.testWrapper, { merginTop: 0, paddingTop: 0 }]}>
+              <Text style={[styles.subTitle, {}]}>Home Price</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={[styles.textStyle, { width: '50%' }]}>MIn: {item.homePrice[0]} $</Text>
+                <Text style={[styles.textStyle, { width: '50%', textAlign: 'right' }]}>Max: {item.homePrice[1]} $</Text>
+              </View>
+            </View>
+          }
+          {
+            item.homeSize && <View style={[styles.testWrapper, { merginTop: 0, paddingTop: 0 }]}>
+              <Text style={[styles.subTitle, {}]}>Home Size</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={[styles.textStyle, { width: '50%' }]}>MIn: {item.homeSize[0]} sq.ft</Text>
+                <Text style={[styles.textStyle, { width: '50%', textAlign: 'right' }]}>Max: {item.homeSize[1]} sq.ft</Text>
+              </View>
+            </View>
+          }
+          {
+            item.neighborhood && <View style={[styles.testWrapper, { merginTop: 0, paddingTop: 0 }]}>
+              <Text style={[styles.subTitle, {}]}>Address</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={[styles.textStyle, { width: '50%' }]}>Neighborhood: {item.neighborhood}</Text>
+                <Text style={[styles.textStyle, { width: '50%', textAlign: 'right' }]}>Town: {item.town}</Text>
+              </View>
+            </View>
+          }
         </View>
       })
 
-    }
+      if (homeValues.length <= 0) {
+        return <Text>You have no home data</Text>
+      }
 
+    }
     return homeValues
 
   }
@@ -189,54 +210,61 @@ export default class ProfileScreen extends Component {
 
     return (
       <View style={styles.container}>
-        <ScrollView style={{width: width - 40,}}   showsVerticalScrollIndicator={false}>
-        {/*{this.state.profileData && this.state.profileData.userPhoto && this.state.profileData.userPhoto !== 'none' || this.state.profileData && this.state.profileData.photoURL   ?*/}
-        {/*  <View style={styles.userImage}>*/}
-        {/*    <Image source={{uri: this.state.profileData.userPhoto  ? this.state.profileData.userPhoto   : this.state.profileData.photoURL}} width={100} height={100} style={{borderRadius: 100,width: 100, height: 100}}/>*/}
-        {/*  </View>*/}
+        <ScrollView style={{ width: width - 40, }} showsVerticalScrollIndicator={false}>
+          {/*{this.state.profileData && this.state.profileData.userPhoto && this.state.profileData.userPhoto !== 'none' || this.state.profileData && this.state.profileData.photoURL   ?*/}
+          {/*  <View style={styles.userImage}>*/}
+          {/*    <Image source={{uri: this.state.profileData.userPhoto  ? this.state.profileData.userPhoto   : this.state.profileData.photoURL}} width={100} height={100} style={{borderRadius: 100,width: 100, height: 100}}/>*/}
+          {/*  </View>*/}
 
-        {/*  : <TouchableOpacity style={styles.userImage} onPress={() => selectPhoto()}>*/}
-        {/*    <Image style={{width: 100,height:100, resizeMode: 'contain'}} source={require('../assets/profile_photo.png')} />*/}
-        {/*  </TouchableOpacity>*/}
-        {/*}*/}
+          {/*  : <TouchableOpacity style={styles.userImage} onPress={() => selectPhoto()}>*/}
+          {/*    <Image style={{width: 100,height:100, resizeMode: 'contain'}} source={require('../assets/profile_photo.png')} />*/}
+          {/*  </TouchableOpacity>*/}
+          {/*}*/}
 
-        <Text style={styles.title}>{this.state.profileData ? this.state.profileData.firstName + ' ' +  this.state.profileData.lastName : null}</Text>
-        <Text style={[styles.textStyle, {textAlign: 'center'}]}>{this.state.profileData ? this.state.profileData.userType : ''}</Text>
+          <Text style={styles.title}>{this.state.profileData ? this.state.profileData.firstName + ' ' + this.state.profileData.lastName : null}</Text>
+          <Text style={[styles.textStyle, { textAlign: 'center' }]}>{this.state.profileData ? this.state.profileData.userType : ''}</Text>
 
-        <View style={styles.testWrapper}>
-          <Text style={styles.subTitle}>Email</Text>
-          <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.email : ''}</Text>
-        </View>
-        <View style={styles.testWrapper}>
-          <Text style={styles.subTitle}>Mobile Number</Text>
-          <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.mobileNumber : ''}</Text>
-        </View>
-          {this.state.profileData && this.state.profileData.userType == "Buyer" &&
           <View style={styles.testWrapper}>
-            <Text style={styles.subTitle}>Financing</Text>
-            <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.financing : ''}</Text>
+            <Text style={styles.subTitle}>Email</Text>
+            <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.email : ''}</Text>
           </View>
-          }
-
-
-          <TouchableOpacity style={[styles.logout, {backgroundColor: '#3eadac', padding: 10,borderColor: '#3eadac'}]} onPress={() => this.onEdit(true)}>
-            <Text style={[styles.textLogout, {color: '#fff'}]}>Edit Profile Data</Text>
-          </TouchableOpacity>
+          <View style={styles.testWrapper}>
+            <Text style={styles.subTitle}>Mobile Number</Text>
+            <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.mobileNumber : ''}</Text>
+          </View>
+          <View style={styles.testWrapper}>
+            <Text style={styles.subTitle}>Account type</Text>
+            <Text style={styles.textStyle}>{this.state.profileData ? paymentTypes[this.state.profileData.payment] || 'No payment' : ''}</Text>
+          </View>
           {this.state.profileData && this.state.profileData.userType == "Buyer" &&
-          <View style={[styles.testWrapper]}>
-            <Text style={[styles.subTitle, { textAlign: 'center', fontSize: 22, width: '100%' }]}>About Home</Text>
-
-            {this.renderHomeParam()}
-
-
-            <TouchableOpacity style={[styles.logout, {backgroundColor: '#3eadac',padding: 10, borderColor: '#3eadac'}]} onPress={() => this.onEdit()}>
-            <Text style={[styles.textLogout, {color: '#fff'}]}>Edit Home Data</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.testWrapper}>
+              <Text style={styles.subTitle}>Financing</Text>
+              <Text style={styles.textStyle}>{this.state.profileData ? this.state.profileData.financing : ''}</Text>
+            </View>
           }
-        <TouchableOpacity style={styles.logout} onPress={() => this.signOut()}>
-          <Text style={styles.textLogout}>Logout</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={[styles.logout, { backgroundColor: '#3eadac', padding: 10, borderColor: '#3eadac' }]} onPress={() => this.onEdit(true)}>
+            <Text style={[styles.textLogout, { color: '#fff' }]}>Edit Profile Data</Text>
+          </TouchableOpacity>
+          {
+            this.state.profileData && this.state.profileData.payment === 'standard' && <TouchableOpacity style={[styles.logout, { backgroundColor: '#3eadac', padding: 10, borderColor: '#3eadac' }]} onPress={() => this.onUpgrade()}>
+              <Text style={[styles.textLogout, { color: '#fff' }]}>Upgrade to premium</Text>
+            </TouchableOpacity>
+          }
+          {this.state.profileData && this.state.profileData.userType == "Buyer" &&
+            <View style={[styles.testWrapper]}>
+              <Text style={[styles.subTitle, { textAlign: 'center', fontSize: 22, width: '100%' }]}>About Home</Text>
+
+              {this.renderHomeParam()}
+
+
+              <TouchableOpacity style={[styles.logout, { backgroundColor: '#3eadac', padding: 10, borderColor: '#3eadac' }]} onPress={() => this.onEdit()}>
+                <Text style={[styles.textLogout, { color: '#fff' }]}>Edit Home Data</Text>
+              </TouchableOpacity>
+            </View>
+          }
+          <TouchableOpacity style={styles.logout} onPress={() => this.signOut()}>
+            <Text style={styles.textLogout}>Logout</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -247,7 +275,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     display: "flex",
-    paddingTop: Platform.OS === 'ios' ?  100 : 50,
+    paddingTop: Platform.OS === 'ios' ? 100 : 50,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     padding: 30,
@@ -255,7 +283,7 @@ const styles = StyleSheet.create({
   },
   subTitle: {
     fontWeight: '600',
-    fontSize:  18,
+    fontSize: 18,
   },
   buttonWrap: {
     top: 100,

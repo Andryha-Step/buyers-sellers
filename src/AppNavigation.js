@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {Text, Image, View, TouchableOpacity, ImageBackground, StyleSheet} from 'react-native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { Text, Image, View, TouchableOpacity, ImageBackground, StyleSheet } from 'react-native';
+import { createStackNavigator, HeaderTitle } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MapScreen from "./screens/Seller/MapScreen";
 import MapScreenBuyer from "./screens/Buyer/MapScreen";
@@ -22,12 +22,11 @@ import BuyerHome from "./screens/BuyerHome";
 import SellerRegister from "./screens/SellerRegister";
 import AboutRivenn from "./screens/AboutRivenn";
 import PaymentScreen from "./screens/PaymentScreen";
+import PDFViewScreen from './screens/PDFViewScreen'
 
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-
-
 
 function AuthStack() {
   return (
@@ -36,16 +35,6 @@ function AuthStack() {
       screenOptions={{
         headerShown: false,
       }}>
-      {/*<Stack.Screen*/}
-      {/*  name="Signup"*/}
-      {/*  component={Signup}*/}
-      {/*  options={({ navigation }) => ({*/}
-      {/*    title: 'Awesome app',*/}
-      {/*    headerLeft: () => (*/}
-      {/*      <DrawerButton onPress={() => navigation.goBack()} />*/}
-      {/*    ),*/}
-      {/*  })}*/}
-      {/*/>*/}
       <Stack.Screen
         name="Login"
         component={Login}
@@ -62,7 +51,6 @@ function AuthStack() {
         name="HomeRegister"
         component={BuyerHome}
       />
-
       <Stack.Screen
         name="SellerRegister"
         component={SellerRegister}
@@ -82,6 +70,14 @@ function AuthStack() {
       <Stack.Screen
         name="SellerHome"
         component={SellerHome}
+      />
+      <Stack.Screen
+        name="PDFViewScreen"
+        component={PDFViewScreen}
+        options={({ route }) => ({
+          headerShown: true,
+          headerTitle: route.params.headerTitle || 'Document'
+        })}
       />
     </Stack.Navigator>
   );
@@ -126,6 +122,10 @@ function ProfileStack() {
       <Stack.Screen
         name="AddressScreen"
         component={AddressScreen}
+      />
+      <Stack.Screen
+        name="PaymentScreen"
+        component={PaymentScreen}
       />
     </Stack.Navigator>
   );
@@ -236,8 +236,8 @@ function BottomTabsSeller() {
         options={{
           tabBarLabel: 'Map',
           tabBarIcon: ({ focused, color }) => focused ?
-              <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIconWhite}/>
-            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIcon}/>
+            <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={MapIconWhite} />
+            : <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={MapIcon} />
         }}
 
       />
@@ -247,8 +247,8 @@ function BottomTabsSeller() {
         options={{
           tabBarLabel: 'Property',
           tabBarIcon: ({ focused, color }) => focused ?
-            <Image style={{width: 25,marginBottom: 5, height: 25}} source={PropertyIconWhite}/>
-            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={PropertyIcon}/>
+            <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={PropertyIconWhite} />
+            : <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={PropertyIcon} />
         }}
       />
       <Tab.Screen
@@ -257,8 +257,8 @@ function BottomTabsSeller() {
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => focused ?
-              <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIconWhite}/>
-            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIcon}/>
+            <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={ProfileIconWhite} />
+            : <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={ProfileIcon} />
         }}
       />
     </Tab.Navigator>
@@ -300,8 +300,8 @@ function BottomTabsBuyer() {
         options={{
           tabBarLabel: 'Map',
           tabBarIcon: ({ focused, color }) => focused ?
-              <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIconWhite}/>
-            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={MapIcon}/>
+            <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={MapIconWhite} />
+            : <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={MapIcon} />
         }}
       />
       <Tab.Screen
@@ -310,15 +310,15 @@ function BottomTabsBuyer() {
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }) => focused ?
-              <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIconWhite}/>
-            : <Image style={{width: 25,marginBottom: 5, height: 25}} source={ProfileIcon}/>
+            <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={ProfileIconWhite} />
+            : <Image style={{ width: 25, marginBottom: 5, height: 25 }} source={ProfileIcon} />
         }}
       />
     </Tab.Navigator>
   );
 }
 const AppNavigator = (props) => {
-  console.log('stack',props.initialRouteName )
+  console.log('stack', props.initialRouteName)
   return (
     <Stack.Navigator
       initialRouteName={props.initialRouteName}
@@ -330,6 +330,7 @@ const AppNavigator = (props) => {
       <Stack.Screen name="AuthStack" component={AuthStack} />
       <Stack.Screen name="MainStack" component={BottomTabsSeller} />
       <Stack.Screen name="MainStackBuyer" component={BottomTabsBuyer} />
+      <Stack.Screen name="NoPaymentScreen" component={PaymentScreen} />
     </Stack.Navigator>
   );
 };

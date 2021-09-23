@@ -15,6 +15,8 @@
 		B3EB108019C98DA539B17C6A /* libPods-Dating.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F312C9E55F23F55D071350A1 /* libPods-Dating.a */; };
 		B5148AB72631B8C50027D6B9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B5148AB62631B8C50027D6B9 /* GoogleService-Info.plist */; };
 		C33F9863360CF3F7D166871B /* libPods-Dating-DatingTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 027DB68B687BE8B4CAE4D93F /* libPods-Dating-DatingTests.a */; };
+		EF1F47AB26C41B65006D89E9 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EF1F47AA26C41B65006D89E9 /* StoreKit.framework */; };
+		EFCB748E26D105150065CA22 /* libswiftWebKit.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = EFCB748D26D105150065CA22 /* libswiftWebKit.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,8 @@
 		83D26CE3BA4F1E7C9238C434 /* Pods-Dating.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Dating.debug.xcconfig"; path = "Target Support Files/Pods-Dating/Pods-Dating.debug.xcconfig"; sourceTree = "<group>"; };
 		B5148AB62631B8C50027D6B9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "Dating/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		EF1F47AA26C41B65006D89E9 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		EFCB748D26D105150065CA22 /* libswiftWebKit.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftWebKit.tbd; path = usr/lib/swift/libswiftWebKit.tbd; sourceTree = SDKROOT; };
 		F312C9E55F23F55D071350A1 /* libPods-Dating.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Dating.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -61,7 +65,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EFCB748E26D105150065CA22 /* libswiftWebKit.tbd in Frameworks */,
 				B3EB108019C98DA539B17C6A /* libPods-Dating.a in Frameworks */,
+				EF1F47AB26C41B65006D89E9 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,6 +108,8 @@
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				EFCB748D26D105150065CA22 /* libswiftWebKit.tbd */,
+				EF1F47AA26C41B65006D89E9 /* StoreKit.framework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				F312C9E55F23F55D071350A1 /* libPods-Dating.a */,
 				027DB68B687BE8B4CAE4D93F /* libPods-Dating-DatingTests.a */,
@@ -501,12 +509,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 9;
+				DEVELOPMENT_TEAM = SG4Q7X92SY;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Dating/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -527,11 +540,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 9;
+				DEVELOPMENT_TEAM = SG4Q7X92SY;
 				INFOPLIST_FILE = Dating/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SDKROOT)/usr/lib/swift",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",

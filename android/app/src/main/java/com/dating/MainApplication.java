@@ -1,4 +1,4 @@
-package com.dating;
+package com.datingBuyersSellers;
 
 import android.app.Application;
 import android.content.Context;

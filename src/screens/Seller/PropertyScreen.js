@@ -1,5 +1,5 @@
 // components/dashboard.js
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -19,15 +19,12 @@ import database from "@react-native-firebase/database";
 import auth from "@react-native-firebase/auth";
 import { useIsFocused } from '@react-navigation/native';
 
-
-
-
-const {width, height} = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 const PropertyScreen = (props) => {
   const isFocused = useIsFocused();
 
-  const [userId , setUserId] = useState(null)
-  const [userData , setUserData] = useState(null)
+  const [userId, setUserId] = useState(null)
+  const [userData, setUserData] = useState(null)
   const [addressList, setAddressList] = useState([])
 
   useEffect(() => {
@@ -35,8 +32,8 @@ const PropertyScreen = (props) => {
       .ref('users/' + userId)
       .once('value')
       .then(snapshot => {
-        console.log(snapshot.val() )
-        if(snapshot.val() !== null ) {
+        console.log(snapshot.val())
+        if (snapshot.val() !== null) {
           setUserData(snapshot.val())
           setAddressList([snapshot.val().homes])
         }
@@ -53,11 +50,11 @@ const PropertyScreen = (props) => {
       .once('value')
       .then(snapshot => {
         console.log('User Property screen: ', snapshot.val());
-        if(snapshot.val() !== null ) {
+        if (snapshot.val() !== null) {
           setUserData(snapshot.val())
           setAddressList([snapshot.val().homes])
         } else {
-          console.log( 'user not register')
+          console.log('user not register')
         }
 
       }).catch(error => console.log(error, 'user Data error'))
@@ -65,15 +62,18 @@ const PropertyScreen = (props) => {
 
   const onAuthStateChanged = (user) => {
 
-    if(user) {
+    if (user) {
       setUserId(user.uid)
     }
-    if(!user) {
+    if (!user) {
       props.navigation.navigate('Login')
     }
   }
   const addHome = () => {
-    props.navigation.navigate('SellerHome', {addressId: false, goBack: true,})
+    if (Object.values(userData.homes || {}).length >= 5 && userData.payment !== 'premium') {
+      return alert("You're out of limit for this action with this plan –  can be only 5 created property, please upgrade the plan to 'Premium' to get unlimited actions to create the properties")
+    }
+    props.navigation.navigate('SellerHome', { addressId: false, goBack: true, })
   }
   const onDeleteHome = (homeId) => {
     Alert.alert(
@@ -97,66 +97,66 @@ const PropertyScreen = (props) => {
     database()
       .ref('AllSellerHomes/' + homeId).remove()
     database()
-      .ref('users/'+ userId + '/homes/' + homeId).remove().then(() => {
-      database()
-        .ref('users/' + userId)
-        .once('value')
-        .then(snapshot => {
-          console.log(snapshot.val() )
-          if(snapshot.val() !== null ) {
-            setUserData(snapshot.val())
-            setAddressList([snapshot.val().homes])
-          }
-        }).catch(error => console.log(error, 'user Data error'))
-    })
+      .ref('users/' + userId + '/homes/' + homeId).remove().then(() => {
+        database()
+          .ref('users/' + userId)
+          .once('value')
+          .then(snapshot => {
+            console.log(snapshot.val())
+            if (snapshot.val() !== null) {
+              setUserData(snapshot.val())
+              setAddressList([snapshot.val().homes])
+            }
+          }).catch(error => console.log(error, 'user Data error'))
+      })
   }
   const editHome = (id, home) => {
     console.log(id, 'id')
-   props.navigation.navigate('SellerHome', {addressId: id, userId: userId, goBack: true, home: home})
+    props.navigation.navigate('SellerHome', { addressId: id, userId: userId, goBack: true, home: home })
   }
-  const itemList = addressList.map(item => item !== null && item !== undefined ? Object.values(item) : null)
-  const keyList = addressList.map(item => item !== null && item !== undefined ?  Object.keys(item).flat() : null )
-
+  const itemList = addressList.map(item => item !== null && item !== undefined ? Object.values(item) : null).filter(item => !!item);
+  const keyList = addressList.map(item => item !== null && item !== undefined ? Object.keys(item).flat() : null)
   return (
     <View style={styles.container}>
 
-      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-        <Text style={{fontSize: 27,fontWeight: '600',marginTop: 15,paddingBottom: 10}}>My Adress</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 27, fontWeight: '600', marginTop: 15, paddingBottom: 10 }}>My Adress</Text>
         <TouchableOpacity style={styles.addHome} onPress={() => addHome()}>
-          <Text style={{fontSize: 37}}>+</Text>
+          <Text style={{ fontSize: 37 }}>+</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        { itemList.flat().map((item, index) => {
-          if(item == null) {
-            return
-          }
-
-          return  <TouchableOpacity style={styles.propItem} key={index} onPress={() => editHome(keyList.flat()[index], item)}>
+        {
+          itemList.length <= 0 && <View style={styles.emptyContainer}>
+            <Text>There is no property, click + to add some</Text>
+          </View>
+        }
+        {itemList.flat().map((item, index) => {
+          return <TouchableOpacity style={styles.propItem} key={index} onPress={() => editHome(keyList.flat()[index], item)}>
             <TouchableOpacity style={styles.deleteHome} onPress={() => onDeleteHome(keyList.flat()[index], item)}>
-              <Image style={{width: 10, height: 10}} source={require('../../assets/cancel.png')} />
+              <Image style={{ width: 10, height: 10 }} source={require('../../assets/cancel.png')} />
             </TouchableOpacity>
 
-            <View style={{flexDirection: 'row',justifyContent: 'space-between',alignItems: 'center'}}>
-              <Text style={{fontSize: 17,fontWeight: '600',}}>Address</Text>
-              <Image style={{width: 35,height: 35}} source={require('../../assets/house.jpeg')}/>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 17, fontWeight: '600', }}>Address</Text>
+              <Image style={{ width: 35, height: 35 }} source={require('../../assets/house.jpeg')} />
             </View>
 
-            <Text style={{fontSize: 13,fontWeight: '500',marginTop: 15,}}>{item.address}</Text>
-            <View style={{flexDirection: 'row',justifyContent: 'space-between'}}>
-              <View style={{flexDirection: 'row',justifyContent: 'space-between',alignItems: 'center'}}>
-                <Text style={{fontSize: 15,fontWeight: '600', marginTop: 15}}>Price: </Text>
-                <Text style={{fontSize: 13,fontWeight: '400', marginTop: 15}}>{item.price}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '500', marginTop: 15, }}>{item.address}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', marginTop: 15 }}>Price: </Text>
+                <Text style={{ fontSize: 13, fontWeight: '400', marginTop: 15 }}>{item.price}</Text>
               </View>
-              <View style={{flexDirection: 'row',justifyContent: 'space-between',alignItems: 'center'}}>
-                <Text style={{fontSize: 15,fontWeight: '600', marginTop: 15}}>Time Frame: </Text>
-                <Text style={{fontSize: 13,fontWeight: '400', marginTop: 15}}>{item.timeFrame}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', marginTop: 15 }}>Time Frame: </Text>
+                <Text style={{ fontSize: 13, fontWeight: '400', marginTop: 15 }}>{item.timeFrame}</Text>
               </View>
 
             </View>
           </TouchableOpacity>
-          }
+        }
         )}
 
       </ScrollView>
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 30,
-    paddingTop: Platform.OS == 'ios' ?  50 : 20,
+    paddingTop: Platform.OS == 'ios' ? 50 : 20,
     paddingBottom: 0,
     backgroundColor: '#fff',
   },
@@ -227,5 +227,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5
   },
+  emptyContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: height - 270,
+  }
 });
 export default PropertyScreen

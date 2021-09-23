@@ -1,6 +1,6 @@
 // App.js
 
-import  React,  {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import auth from '@react-native-firebase/auth';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -12,7 +12,7 @@ import firebase from './database/fireBase'
 
 const Stack = createStackNavigator();
 
-
+const payments = ['standard', 'premium']
 
 export default function App() {
   // Handle user state changes
@@ -20,25 +20,28 @@ export default function App() {
   const [userType, setUserType] = useState(false)
   const [initialRouteName, setInitialRouteName] = useState('None')
 
-  useEffect(async  () => {
-    const login = await  AsyncStorage.getItem('Login')
+  useEffect(async () => {
+    const login = await AsyncStorage.getItem('Login')
 
     console.log('login', login)
     try {
       const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
       return subscriber; // unsubscribe on unmount
-    } catch (error) {console.log(error)}
-
+    } catch (error) { console.log(error) }
 
   }, []);
 
   const onAuthStateChanged = (user) => {
-    if(user) {
+    if (user) {
       database()
         .ref('users/' + user.uid)
         .once('value')
         .then(snapshot => {
-          if(snapshot.val() !== null ) {
+          if (snapshot.val() !== null) {
+            if (!snapshot.val().payment || !payments.includes(snapshot.val().payment)) {
+              console.log('User have no payment')
+              return setInitialRouteName('NoPaymentScreen')
+            }
             setUserType(snapshot.val().userType)
             setInitialRouteName(snapshot.val().userType === 'Seller' ? 'MainStack' : 'MainStackBuyer')
           } else {

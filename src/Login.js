@@ -1,6 +1,6 @@
 // components/login.js
 
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,7 +15,9 @@ import auth from '@react-native-firebase/auth';
 import { TouchableOpacity } from "react-native-gesture-handler";
 import database from "@react-native-firebase/database";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const {width, height} = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
+
+const payments = ['standard', 'premium']
 
 export default class Login extends Component {
   constructor() {
@@ -29,14 +31,13 @@ export default class Login extends Component {
     this.onAuthStateChanged = this.onAuthStateChanged.bind(this)
   }
   async componentDidMount() {
-
     const subscriber = auth().onAuthStateChanged(this.onAuthStateChanged)
 
     return subscriber; // unsubscribe on unmount
   }
-   onAuthStateChanged =  (user) => {
+  onAuthStateChanged = (user) => {
     console.log('user login screen', user)
-    if(user) {
+    if (user) {
       //this.props.navigation.navigate('ProfileScreen');
 
     }
@@ -70,7 +71,11 @@ export default class Login extends Component {
             .ref('users/' + res.user.uid)
             .once('value')
             .then(snapshot => {
-              if(snapshot.val().userType === 'Seller') {
+              if (!snapshot.val().payment || !payments.includes(snapshot.val().payment)) {
+                console.log('User have no payment')
+                return this.props.navigation.navigate('NoPaymentScreen')
+              }
+              if (snapshot.val().userType === 'Seller') {
                 this.props.navigation.navigate('MainStack');
               } else {
                 this.props.navigation.navigate('MainStackBuyer');
@@ -128,9 +133,9 @@ export default class Login extends Component {
           secureTextEntry={true}
         />
 
-          <TouchableOpacity style={[styles.loginBtn, {backgroundColor: '#3eadac',padding: 10, borderColor: '#3eadac'}]} onPress={() => this.userLogin()}>
-                <Text style={styles.btnText}>Login</Text>
-          </TouchableOpacity>
+        <TouchableOpacity style={[styles.loginBtn, { backgroundColor: '#3eadac', padding: 10, borderColor: '#3eadac' }]} onPress={() => this.userLogin()}>
+          <Text style={styles.btnText}>Login</Text>
+        </TouchableOpacity>
 
 
         <Text
@@ -170,16 +175,16 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   loginBtn: {
-      width: width - 60,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 10,
-      marginTop: 20,
-      backgroundColor: '#fff',
-      borderWidth: 2,
-      borderColor: '#000',
-      borderRadius: 10,
-      marginBottom: 10,
+    width: width - 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 10,
+    marginBottom: 10,
 
   },
   btnText: {

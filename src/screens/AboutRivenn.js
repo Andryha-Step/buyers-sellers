@@ -1,13 +1,13 @@
 // components/dashboard.js
 
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, Button, Dimensions, Platform,TextInput } from "react-native";
-import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
+import { StyleSheet, View, Text, Button, Dimensions, Platform, TextInput } from "react-native";
+import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
 import { TouchableOpacity } from "react-native-gesture-handler";
 
 
 
-const {width, height} = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 
 
 const AboutRivenn = (props) => {
@@ -15,56 +15,59 @@ const AboutRivenn = (props) => {
   const [termsAgree, setTermsAgree] = useState(false)
   const [error, setErrore] = useState(false)
 
-
   const onSubmit = () => {
-    if(understand && termsAgree) {
+    if (termsAgree) {
       setErrore(false)
       console.log(props.route.params)
-      props.navigation.navigate('PaymentScreen', {userType: props.route.params.userType})
+      props.navigation.navigate('PaymentScreen', { userType: props.route.params.userType, context: '' })
     } else {
       setErrore(true)
     }
   }
 
+  const handleTerms = () => {
+    props.navigation.navigate('PDFViewScreen', { source: { uri: require('../assets/Terms_Conditions.json').base64 }, headerTitle: 'Terms and conditions' })
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>About Rivenn</Text>
+      {/* <Text style={styles.title}>About Rivenn</Text>
       <View style={styles.inputItem}>
         <Text style={styles.inputTitle}>How the Rivenn system works </Text>
         <TouchableOpacity style={styles.uploadBtn}>
           <Text style={styles.uploadText}>Click to read</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
-     <View style={styles.radioWrapper}>
-       <RadioButton
-         obj={{label: 'i understand how Rivenn works', value: true}}
-         isSelected={understand}
-         onPress={() => understand ?  setunerstand(false) : setunerstand(true) }
-         buttonColor={'#3eadac'}
-         selectedButtonColor={'#3eadac'}
-       />
-     </View>
+      {/* <View style={styles.radioWrapper}>
+        <RadioButton
+          obj={{ label: 'I understand how Rivenn works', value: true }}
+          isSelected={understand}
+          onPress={() => understand ? setunerstand(false) : setunerstand(true)}
+          buttonColor={'#3eadac'}
+          selectedButtonColor={'#3eadac'}
+        />
+      </View> */}
 
 
       <View style={styles.inputItem}>
         <Text style={styles.inputTitle}>Terms and Agreement</Text>
-        <TouchableOpacity style={styles.uploadBtn}>
+        <TouchableOpacity style={styles.uploadBtn} onPress={handleTerms}>
           <Text style={styles.uploadText}>Click to read</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.radioWrapper}>
         <RadioButton
-          obj={{label: 'i have read, understood and agree with \nthe Terms and  Agreement', value: true}}
+          obj={{ label: 'I have read, understood and agree with \nthe Terms and  Agreement', value: true }}
           isSelected={termsAgree}
-          style={{alignItems: 'center'}}
-          onPress={() => termsAgree ?  setTermsAgree(false) : setTermsAgree(true) }
+          style={{ alignItems: 'center' }}
+          onPress={() => termsAgree ? setTermsAgree(false) : setTermsAgree(true)}
           buttonColor={'#3eadac'}
           selectedButtonColor={'#3eadac'}
         />
       </View>
-      {error && <Text style={{color: 'red', fontSize: 15,marginTop: 10,}}>Pls check all buttons to continue</Text>}
+      {error && <Text style={{ color: 'red', fontSize: 15, marginTop: 10, }}>Pls check all buttons to continue</Text>}
       <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
         <Text style={styles.textStyle}>I'ready to have Rivenn help me find a home</Text>
       </TouchableOpacity>
@@ -86,7 +89,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     display: "flex",
-    paddingTop: Platform.OS === 'ios' ?  100 : 50,
+    paddingTop: Platform.OS === 'ios' ? 100 : 50,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     padding: 20,

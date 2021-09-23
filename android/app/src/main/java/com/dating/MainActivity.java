@@ -1,4 +1,4 @@
-package com.dating;
+package com.datingBuyersSellers;
 
 import com.facebook.react.ReactActivity;
 
