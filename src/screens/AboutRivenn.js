@@ -1,33 +1,59 @@
 // components/dashboard.js
 
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Button, Dimensions, Platform, TextInput } from "react-native";
-import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
-import { TouchableOpacity } from "react-native-gesture-handler";
+import React, {useState, useEffect} from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Button,
+  Dimensions,
+  Platform,
+  TextInput,
+} from 'react-native';
+import RadioForm, {
+  RadioButton,
+  RadioButtonInput,
+  RadioButtonLabel,
+} from 'react-native-simple-radio-button';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import database from '@react-native-firebase/database';
+import auth from '@react-native-firebase/auth';
 
+const {width, height} = Dimensions.get('window');
 
+const AboutRivenn = props => {
+  const [understand, setunerstand] = useState(false);
+  const [termsAgree, setTermsAgree] = useState(false);
+  const [error, setErrore] = useState(false);
+  const [userType, setUserType] = useState('');
 
-const { width, height } = Dimensions.get('window')
-
-
-const AboutRivenn = (props) => {
-  const [understand, setunerstand] = useState(false)
-  const [termsAgree, setTermsAgree] = useState(false)
-  const [error, setErrore] = useState(false)
+  useEffect(() => {
+    database()
+      .ref(`users/${auth().currentUser.uid}`)
+      .once('value')
+      .then(snapshot => {
+        setUserType(snapshot.val().userType);
+      });
+  }, []);
 
   const onSubmit = () => {
     if (termsAgree) {
-      setErrore(false)
-      console.log(props.route.params)
-      props.navigation.navigate('PaymentScreen', { userType: props.route.params.userType, context: '' })
+      setErrore(false);
+      console.log(props.route.params);
+      userType === 'Buyer'
+        ? props.navigation.navigate('MainStackBuyer')
+        : props.navigation.navigate('MainStack');
     } else {
-      setErrore(true)
+      setErrore(true);
     }
-  }
+  };
 
   const handleTerms = () => {
-    props.navigation.navigate('PDFViewScreen', { source: { uri: require('../assets/Terms_Conditions.json').base64 }, headerTitle: 'Terms and conditions' })
-  }
+    props.navigation.navigate('PDFViewScreen', {
+      source: {uri: require('../assets/Terms_Conditions.json').base64},
+      headerTitle: 'Terms and conditions',
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -49,7 +75,6 @@ const AboutRivenn = (props) => {
         />
       </View> */}
 
-
       <View style={styles.inputItem}>
         <Text style={styles.inputTitle}>Terms and Agreement</Text>
         <TouchableOpacity style={styles.uploadBtn} onPress={handleTerms}>
@@ -59,17 +84,29 @@ const AboutRivenn = (props) => {
 
       <View style={styles.radioWrapper}>
         <RadioButton
-          obj={{ label: 'I have read, understood and agree with \nthe Terms and  Agreement', value: true }}
+          obj={{
+            label:
+              'I have read, understood and agree with \nthe Terms and  Agreement',
+            value: true,
+          }}
           isSelected={termsAgree}
-          style={{ alignItems: 'center' }}
-          onPress={() => termsAgree ? setTermsAgree(false) : setTermsAgree(true)}
+          style={{alignItems: 'center'}}
+          onPress={() =>
+            termsAgree ? setTermsAgree(false) : setTermsAgree(true)
+          }
           buttonColor={'#3eadac'}
           selectedButtonColor={'#3eadac'}
         />
       </View>
-      {error && <Text style={{ color: 'red', fontSize: 15, marginTop: 10, }}>Pls check all buttons to continue</Text>}
+      {error && (
+        <Text style={{color: 'red', fontSize: 15, marginTop: 10}}>
+          Pls check all buttons to continue
+        </Text>
+      )}
       <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-        <Text style={styles.textStyle}>I'ready to have Rivenn help me find a home</Text>
+        <Text style={styles.textStyle}>
+          I'ready to have Rivenn help me find a home
+        </Text>
       </TouchableOpacity>
       {/*<Button*/}
       {/*  color="#3740FE"*/}
@@ -77,10 +114,10 @@ const AboutRivenn = (props) => {
       {/*  onPress={() => this.signOut()}*/}
       {/*/>*/}
     </View>
-  )
-}
+  );
+};
 
-export default AboutRivenn
+export default AboutRivenn;
 const styles = StyleSheet.create({
   buttonWrap: {
     backgroundColor: 'red',
@@ -88,12 +125,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    display: "flex",
+    display: 'flex',
     paddingTop: Platform.OS === 'ios' ? 100 : 50,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   title: {
     width: '100%',
@@ -105,7 +142,7 @@ const styles = StyleSheet.create({
   inputItem: {
     width: '100%',
     marginTop: 10,
-    display: "flex",
+    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -121,7 +158,7 @@ const styles = StyleSheet.create({
   uploadText: {
     textTransform: 'uppercase',
     fontSize: Platform.OS === 'ios' ? 15 : 13,
-    color: '#3eadac'
+    color: '#3eadac',
   },
   radioWrapper: {
     marginTop: 20,
@@ -129,7 +166,7 @@ const styles = StyleSheet.create({
   submit: {
     marginTop: 30,
     width: width - 40,
-    display: "flex",
+    display: 'flex',
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
@@ -138,5 +175,5 @@ const styles = StyleSheet.create({
   textStyle: {
     color: '#fff',
     fontSize: 17,
-  }
+  },
 });
