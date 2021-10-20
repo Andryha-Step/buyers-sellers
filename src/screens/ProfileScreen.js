@@ -145,7 +145,7 @@ export default class ProfileScreen extends Component {
 
   renderHomeParam() {
     let homeValues = [];
-    if (this.state.profileData) {
+    if (this.state.profileData && this.state.profileData.homeParam) {
       const homeParam = [this.state.profileData.homeParam];
       console.log(' this.state.profileData.homeParam', homeParam);
       homeValues = homeParam
@@ -153,25 +153,14 @@ export default class ProfileScreen extends Component {
         .map((item, index) => {
           return (
             <View style={{flexShrink: 1}}>
-              {item.bathrooms && (
+              {item.bathrooms && item.bathrooms[0] && item.bathrooms[1] ? (
                 <View
                   style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
-                  <Text style={[styles.subTitle, {}]}>Bathrooms</Text>
-                  <View style={{flexDirection: 'row'}}>
-                    <Text style={[styles.textStyle, {width: '50%'}]}>
-                      MIn: {item.bathrooms[0]}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.textStyle,
-                        {width: '50%', textAlign: 'right'},
-                      ]}>
-                      Max: {item.bathrooms[1]}
-                    </Text>
-                  </View>
+                  <Text style={[styles.subTitle]}>Bathrooms</Text>
+                  <View style={{flexDirection: 'row'}} />
                 </View>
-              )}
-              {item.bedrooms && (
+              ) : null}
+              {item.bedrooms && item.bedrooms[0] && item.bedrooms[1] ? (
                 <View
                   style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
                   <Text style={[styles.subTitle, {}]}>Bedrooms</Text>
@@ -188,8 +177,8 @@ export default class ProfileScreen extends Component {
                     </Text>
                   </View>
                 </View>
-              )}
-              {item.homePrice && (
+              ) : null}
+              {item.homePrice && item.homePrice[0] && item.homePrice[1] ? (
                 <View
                   style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
                   <Text style={[styles.subTitle, {}]}>Home Price</Text>
@@ -206,8 +195,8 @@ export default class ProfileScreen extends Component {
                     </Text>
                   </View>
                 </View>
-              )}
-              {item.homeSize && (
+              ) : null}
+              {item.homeSize && item.homeSize[0] && item.homeSize[1] ? (
                 <View
                   style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
                   <Text style={[styles.subTitle, {}]}>Home Size</Text>
@@ -224,8 +213,8 @@ export default class ProfileScreen extends Component {
                     </Text>
                   </View>
                 </View>
-              )}
-              {item.neighborhood && (
+              ) : null}
+              {item.neighborhood ? (
                 <View
                   style={[styles.testWrapper, {merginTop: 0, paddingTop: 0}]}>
                   <Text style={[styles.subTitle, {}]}>Address</Text>
@@ -242,7 +231,7 @@ export default class ProfileScreen extends Component {
                     </Text>
                   </View>
                 </View>
-              )}
+              ) : null}
             </View>
           );
         });
@@ -378,6 +367,7 @@ export default class ProfileScreen extends Component {
             onPress={() => this.signOut()}>
             <Text style={styles.textLogout}>Logout</Text>
           </TouchableOpacity>
+          <Text>Version: 1.0.11</Text>
         </ScrollView>
       </View>
     );

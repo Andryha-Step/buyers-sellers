@@ -18,6 +18,7 @@ import firebase from '../../../database/fireBase';
 import database from '@react-native-firebase/database';
 import auth from '@react-native-firebase/auth';
 import {useIsFocused} from '@react-navigation/native';
+import Geocoder from 'react-native-geocoding';
 
 const {width, height} = Dimensions.get('window');
 const PropertyScreen = props => {
@@ -26,6 +27,8 @@ const PropertyScreen = props => {
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState(null);
   const [addressList, setAddressList] = useState([]);
+
+  Geocoder.init('AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw');
 
   useEffect(() => {
     database()
@@ -60,6 +63,8 @@ const PropertyScreen = props => {
       })
       .catch(error => console.log(error, 'user Data error'));
   }, [userId]);
+
+  //{"lat": 50.4501, "lng": 30.5234}
 
   const onAuthStateChanged = user => {
     if (user) {
@@ -181,10 +186,13 @@ const PropertyScreen = props => {
                   source={require('../../assets/house.jpeg')}
                 />
               </View>
-
               <Text style={{fontSize: 13, fontWeight: '500', marginTop: 15}}>
                 {item.address}
               </Text>
+              <ZipCodeText
+                lat={item.coordinate.lat}
+                lng={item.coordinate.lng}
+              />
               <View
                 style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View
@@ -238,6 +246,29 @@ const PropertyScreen = props => {
       {/*</Modal>*/}
     </View>
   );
+};
+
+const ZipCodeText = ({lat, lng}) => {
+  const [zipCode, setZipCode] = useState('');
+
+  useEffect(() => {
+    getZipCode();
+  }, []);
+
+  const getZipCode = () => {
+    Geocoder.from(lat, lng)
+      .then(json => {
+        const zipCode =
+          json.results[0].address_components[
+            json.results[0].address_components.length - 1
+          ].long_name;
+        console.log('zipCode', zipCode);
+        setZipCode(zipCode);
+      })
+      .catch(error => 'Error while handling zip-code');
+  };
+
+  return <Text>{zipCode}</Text>;
 };
 
 const styles = StyleSheet.create({

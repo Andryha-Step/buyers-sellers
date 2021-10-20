@@ -1,6 +1,6 @@
 // components/dashboard.js
 
-import React, {useState, useEffect}  from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   View,
@@ -11,81 +11,90 @@ import {
   Dimensions,
   Platform,
   Alert,
-} from "react-native";
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RadioForm, {RadioButton, RadioButtonInput, RadioButtonLabel} from 'react-native-simple-radio-button';
-import { TouchableOpacity } from "react-native-gesture-handler";
-import firebase from '../../database/fireBase'
+import RadioForm, {
+  RadioButton,
+  RadioButtonInput,
+  RadioButtonLabel,
+} from 'react-native-simple-radio-button';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import firebase from '../../database/fireBase';
 import auth from '@react-native-firebase/auth';
 
-const {width, height} = Dimensions.get('window')
+const {width, height} = Dimensions.get('window');
 
 const radio_props = [
-  {label: 'Yes', value: 'Yes' },
-  {label: 'No', value: 'No' },
-  {label: "I don\'t have a mortgage", value: 'I don\'t have a mortgage' },
+  {label: 'Yes', value: 'Yes'},
+  {label: 'No', value: 'No'},
+  {label: "I don't have a mortgage", value: "I don't have a mortgage"},
 ];
 const primary_props = [
-  {label: 'Yes', value: 'Yes' },
-  {label: 'No', value: 'No' },
+  {label: 'Yes', value: 'Yes'},
+  {label: 'No', value: 'No'},
 ];
 
-const SellerRegister = (props) => {
-  const [radioValue, setRadioValue] = useState('')
-  const [errorMessage, setErrorMesasge] = useState('')
-  const [isLogged, setIsLogged] = useState('')
+const how_quick_props = [
+  {label: '1-3 months', value: '1-3'},
+  {label: '3-6 months', value: '3-6'},
+  {label: '1+ year', value: '12+'},
+];
 
-  const [primaryValue, setPrimaryValue] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [emailError, setEmailError] = useState(false)
-  const [mobile, setMobile] = useState('')
-  const [password, setPassword] = useState('')
+const SellerRegister = props => {
+  const [radioValue, setRadioValue] = useState('');
+  const [errorMessage, setErrorMesasge] = useState('');
+  const [isLogged, setIsLogged] = useState('');
+
+  const [primaryValue, setPrimaryValue] = useState('');
+  const [howQuick, setHowQuick] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
-    if(props.route.params.profileData) {
-      console.log(props.route.params.profileData,'tut')
-      setFirstName(props.route.params.profileData.firstName)
-      setLastName(props.route.params.profileData.lastName)
-      setEmail(props.route.params.profileData.email)
-      setMobile(props.route.params.profileData.mobileNumber)
+    if (props.route.params.profileData) {
+      console.log(props.route.params.profileData, 'tut');
+      setFirstName(props.route.params.profileData.firstName);
+      setLastName(props.route.params.profileData.lastName);
+      setEmail(props.route.params.profileData.email);
+      setMobile(props.route.params.profileData.mobileNumber);
     }
-  }, [props.route.params.profileData])
+  }, [props.route.params.profileData]);
 
-
-  const validateEmail = (email) => {
+  const validateEmail = email => {
     console.log(email);
     let reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
     if (reg.test(email) === false) {
-      console.log("Email is Not Correct");
-      setEmailError(true)
-      setEmail(email)
+      console.log('Email is Not Correct');
+      setEmailError(true);
+      setEmail(email);
       return false;
-    }
-    else {
-      setEmailError(false)
-      setEmail(email)
-      console.log("Email is Correct");
-    }
-  }
-  const registerUser = () => {
-    if(email === '' || password === '') {
-      Alert.alert('Enter details to signup!')
     } else {
-        auth()
+      setEmailError(false);
+      setEmail(email);
+      console.log('Email is Correct');
+    }
+  };
+  const registerUser = () => {
+    if (email === '' || password === '') {
+      Alert.alert('Enter details to signup!');
+    } else {
+      auth()
         .createUserWithEmailAndPassword(email, password)
-        .then((res) => {
+        .then(res => {
           res.user.updateProfile({
             displayName: firstName + ' ' + lastName,
             phoneNumber: mobile,
-          })
-          console.log('registered', res.user.uid)
-          setIsLogged(true)
+          });
+          console.log('registered', res.user.uid);
+          setIsLogged(true);
 
-          if(res.user.uid) {
-            const userId = res.user.uid
-              firebase
+          if (res.user.uid) {
+            const userId = res.user.uid;
+            firebase
               .database()
               .ref('users/' + userId + '/')
               .set({
@@ -96,213 +105,259 @@ const SellerRegister = (props) => {
                 mobileNumber: mobile,
                 mortgage: radioValue,
                 isPrimary: primaryValue,
+                howQuick: howQuick,
               })
-              .then((data) => {
-                props.navigation.navigate('SellerHome', {addressId:  false,  profileData: false })
+              .then(data => {
+                props.navigation.navigate('SellerHome', {
+                  addressId: false,
+                  profileData: false,
+                });
               })
-              .catch((error) => {
-                console.log('Storing Error', error)
-              })
+              .catch(error => {
+                console.log('Storing Error', error);
+              });
           }
         })
         .catch(error => {
-          setErrorMesasge(error.message)
-          Alert.alert(
-            error.message,
-            "",
-            [
-              {
-                text: "Login",
-                onPress: () => props.navigation.navigate('Login')
-              },
-              {
-                text: "Cancel",
-                onPress: () => console.log("Cancel Pressed"),
-                style: "cancel"
-              },
-            ]
-          );
-          console.log(error.message)
-        })
+          setErrorMesasge(error.message);
+          Alert.alert(error.message, '', [
+            {
+              text: 'Login',
+              onPress: () => props.navigation.navigate('Login'),
+            },
+            {
+              text: 'Cancel',
+              onPress: () => console.log('Cancel Pressed'),
+              style: 'cancel',
+            },
+          ]);
+          console.log(error.message);
+        });
     }
-  }
+  };
   const onUpdate = () => {
-    const userId = auth().currentUser.uid
+    const userId = auth().currentUser.uid;
 
-    auth().currentUser
-      .updateEmail(email).then(function() {
-      console.log('emsil updated')
-    }).catch(function(error) {
-      console.log('error emsil updated', error)
-      Alert.alert(error)
-    });
+    auth()
+      .currentUser.updateEmail(email)
+      .then(function () {
+        console.log('emsil updated');
+      })
+      .catch(function (error) {
+        console.log('error emsil updated', error);
+        Alert.alert(error);
+      });
 
     firebase
       .database()
-      .ref('users/' + userId + '/' )
+      .ref('users/' + userId + '/')
       .update({
-          firstName: firstName,
-          lastName: lastName,
-          userType: 'Seller',
-          email: email,
-          mobileNumber: mobile,
-          financing: radioValue,
-        }
-      ).then(() => {
-        props.navigation.navigate("ProfileScreen", {update: true})
-
-    })
-  }
+        firstName: firstName,
+        lastName: lastName,
+        userType: 'Seller',
+        email: email,
+        mobileNumber: mobile,
+        financing: radioValue,
+      })
+      .then(() => {
+        props.navigation.navigate('ProfileScreen', {update: true});
+      });
+  };
   const onSubmit = () => {
-    registerUser()
-  }
+    registerUser();
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={{width: width - 40,}}   showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Register as Seller</Text>
+      <ScrollView
+        style={{width: width - 40}}
+        showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Register as Seller</Text>
 
-      <View style={styles.wrapper}>
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>First Name: </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(value) => setFirstName(value)}
-            value={firstName}
-          />
-        </View>
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>Last Name: </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(value) => setLastName(value)}
-            value={lastName}
-          />
-        </View>
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>Email: </Text>
-          <TextInput
-            style={styles.input}
-            autoCompleteType={'email'}
-            onChangeText={(value) => validateEmail(value)}
-            value={email}
-          />
-        </View>
-        {emailError && <Text style={styles.errorText}>Email is not valid</Text>}
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>Phone: </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(value) => setMobile(value)}
-            keyboardType={'phone-pad'}
-            value={mobile}
-          />
-        </View>
-        {!props.route.params.profileData &&
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>Password: </Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={val => setPassword(val)}
-            maxLength={15}
-            secureTextEntry={true}
-          />
-        </View>
-        }
-        {!props.route.params.profileData &&
-        <View style={styles.radioItem}>
-          <Text style={styles.radioTitle}>More information </Text>
-          <View style={styles.radioWrapper}>
-            <Text style={styles.radioSubTitle}>Are you current on your mortage?</Text>
-            <RadioForm
-              style={styles.radioForm}
-            >
-              {
-                radio_props.map((obj, i) => {
-                  return <RadioButton labelHorizontal={true} key={i}
-                                      wrapStyle={{ width: i == 2 ? '55%' : '22%', marginTop: 10, }}>
-                    {/*  You can set RadioButtonLabel before RadioButtonInput */}
-                    <RadioButtonInput
-                      obj={obj}
-                      index={i}
-                      isSelected={radioValue === obj.value}
-                      onPress={(value) => setRadioValue(value)}
-                      buttonInnerColor={'#3eadac'}
-                      buttonOuterColor={'#3eadac'}
-                      buttonSize={15}
-                      buttonStyle={{}}
-
-                    />
-                    <RadioButtonLabel
-                      obj={obj}
-                      index={i}
-                      labelHorizontal={true}
-                      onPress={(value) => setRadioValue(value)}
-                      labelStyle={{ fontSize: 14, color: '#000' }}
-                    />
-                  </RadioButton>
-                })
-              }
-            </RadioForm>
+        <View style={styles.wrapper}>
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>First Name: </Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={value => setFirstName(value)}
+              value={firstName}
+            />
           </View>
-          <View style={styles.radioWrapper}>
-            <Text style={styles.radioSubTitle}>Is the property you're selling your primary residence?</Text>
-            <RadioForm
-              style={styles.radioForm}
-            >
-              {
-                primary_props.map((obj, i) => {
-                  return <RadioButton labelHorizontal={true} key={i} wrapStyle={{ width: '50%', marginTop: 10, }}>
-                    {/*  You can set RadioButtonLabel before RadioButtonInput */}
-                    <RadioButtonInput
-                      obj={obj}
-                      index={i}
-                      isSelected={primaryValue === obj.value}
-                      onPress={(value) => setPrimaryValue(value)}
-                      buttonInnerColor={'#3eadac'}
-                      buttonOuterColor={'#3eadac'}
-                      buttonSize={15}
-                      buttonStyle={{}}
-
-                    />
-                    <RadioButtonLabel
-                      obj={obj}
-                      index={i}
-                      labelHorizontal={true}
-                      onPress={(value) => setRadioValue(value)}
-                      labelStyle={{ fontSize: 14, color: '#000' }}
-                    />
-                  </RadioButton>
-                })
-              }
-            </RadioForm>
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>Last Name: </Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={value => setLastName(value)}
+              value={lastName}
+            />
           </View>
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>Email: </Text>
+            <TextInput
+              style={styles.input}
+              autoCompleteType={'email'}
+              onChangeText={value => validateEmail(value)}
+              value={email}
+            />
+          </View>
+          {emailError && (
+            <Text style={styles.errorText}>Email is not valid</Text>
+          )}
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>Phone: </Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={value => setMobile(value)}
+              keyboardType={'phone-pad'}
+              value={mobile}
+            />
+          </View>
+          {!props.route.params.profileData && (
+            <View style={styles.inputItem}>
+              <Text style={styles.inputTitle}>Password: </Text>
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={val => setPassword(val)}
+                maxLength={15}
+                secureTextEntry={true}
+              />
+            </View>
+          )}
+          {!props.route.params.profileData && (
+            <View style={styles.radioItem}>
+              <Text style={styles.radioTitle}>More information </Text>
+              <View style={styles.radioWrapper}>
+                <Text style={styles.radioSubTitle}>
+                  Are you current on your mortage?
+                </Text>
+                <RadioForm style={styles.radioForm}>
+                  {radio_props.map((obj, i) => {
+                    return (
+                      <RadioButton
+                        labelHorizontal={true}
+                        key={i}
+                        wrapStyle={{
+                          width: i == 2 ? '55%' : '22%',
+                          marginTop: 10,
+                        }}>
+                        {/*  You can set RadioButtonLabel before RadioButtonInput */}
+                        <RadioButtonInput
+                          obj={obj}
+                          index={i}
+                          isSelected={radioValue === obj.value}
+                          onPress={value => setRadioValue(value)}
+                          buttonInnerColor={'#3eadac'}
+                          buttonOuterColor={'#3eadac'}
+                          buttonSize={15}
+                          buttonStyle={{}}
+                        />
+                        <RadioButtonLabel
+                          obj={obj}
+                          index={i}
+                          labelHorizontal={true}
+                          onPress={value => setRadioValue(value)}
+                          labelStyle={{fontSize: 14, color: '#000'}}
+                        />
+                      </RadioButton>
+                    );
+                  })}
+                </RadioForm>
+              </View>
+              <View style={styles.radioWrapper}>
+                <Text style={styles.radioSubTitle}>
+                  Is the property you're selling your primary residence?
+                </Text>
+                <RadioForm style={styles.radioForm}>
+                  {primary_props.map((obj, i) => {
+                    return (
+                      <RadioButton
+                        labelHorizontal={true}
+                        key={i}
+                        wrapStyle={{width: '50%', marginTop: 10}}>
+                        {/*  You can set RadioButtonLabel before RadioButtonInput */}
+                        <RadioButtonInput
+                          obj={obj}
+                          index={i}
+                          isSelected={primaryValue === obj.value}
+                          onPress={value => setPrimaryValue(value)}
+                          buttonInnerColor={'#3eadac'}
+                          buttonOuterColor={'#3eadac'}
+                          buttonSize={15}
+                          buttonStyle={{}}
+                        />
+                        <RadioButtonLabel
+                          obj={obj}
+                          index={i}
+                          labelHorizontal={true}
+                          onPress={value => setRadioValue(value)}
+                          labelStyle={{fontSize: 14, color: '#000'}}
+                        />
+                      </RadioButton>
+                    );
+                  })}
+                </RadioForm>
+              </View>
+              <View style={styles.radioWrapper}>
+                <Text style={styles.radioSubTitle}>
+                  How much quick you want to sell your property?
+                </Text>
+                <RadioForm style={styles.radioForm}>
+                  {how_quick_props.map((obj, i) => {
+                    return (
+                      <RadioButton
+                        labelHorizontal={true}
+                        key={i}
+                        wrapStyle={{width: '50%', marginTop: 10}}>
+                        {/*  You can set RadioButtonLabel before RadioButtonInput */}
+                        <RadioButtonInput
+                          obj={obj}
+                          index={i}
+                          isSelected={howQuick === obj.value}
+                          onPress={value => setHowQuick(value)}
+                          buttonInnerColor={'#3eadac'}
+                          buttonOuterColor={'#3eadac'}
+                          buttonSize={15}
+                          buttonStyle={{}}
+                        />
+                        <RadioButtonLabel
+                          obj={obj}
+                          index={i}
+                          labelHorizontal={true}
+                          onPress={value => setHowQuick(value)}
+                          labelStyle={{fontSize: 14, color: '#000'}}
+                        />
+                      </RadioButton>
+                    );
+                  })}
+                </RadioForm>
+              </View>
+            </View>
+          )}
         </View>
-        }
-      </View>
 
-
-
-      <View style={styles.buttonWrapper}>
-        <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>
-          <Text style={styles.textStyle}>Previous</Text>
-        </TouchableOpacity>
-        {props.route.params.profileData ?
-          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
-            <Text style={styles.textStyle}>Submit</Text>
+        <View style={styles.buttonWrapper}>
+          <TouchableOpacity
+            style={styles.submit}
+            onPress={() => props.navigation.goBack()}>
+            <Text style={styles.textStyle}>Previous</Text>
           </TouchableOpacity>
-          : <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-            <Text style={styles.textStyle}>Next</Text>
-          </TouchableOpacity>
-        }
-      </View>
+          {props.route.params.profileData ? (
+            <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+              <Text style={styles.textStyle}>Submit</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+              <Text style={styles.textStyle}>Next</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
     </View>
-  )
-}
+  );
+};
 
-export default SellerRegister
+export default SellerRegister;
 const styles = StyleSheet.create({
   buttonWrap: {
     backgroundColor: 'red',
@@ -310,12 +365,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    display: "flex",
-    paddingTop: Platform.OS === 'ios' ?  100 : 50,
+    display: 'flex',
+    paddingTop: Platform.OS === 'ios' ? 100 : 50,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   title: {
     width: '100%',
@@ -329,7 +384,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inputItem: {
-    display: "flex",
+    display: 'flex',
     flexDirection: 'row',
     marginTop: 15,
     justifyContent: 'flex-start',
@@ -392,15 +447,15 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: 30,
-    width: width/2 - 30,
-    display: "flex",
+    width: width / 2 - 30,
+    display: 'flex',
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#3eadac',
   },
   textStyle: {
-    textTransform:'uppercase',
+    textTransform: 'uppercase',
     textAlign: 'center',
     fontWeight: '500',
     color: '#fff',

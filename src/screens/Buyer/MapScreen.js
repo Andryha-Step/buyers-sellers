@@ -1,5 +1,5 @@
 // components/dashboard.js
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,8 @@ import {
   Modal,
   Alert,
   Pressable,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import MapView, {Circle, Marker, Polyline, Callout} from 'react-native-maps';
 import firebase from '../../../database/fireBase';
@@ -19,6 +21,7 @@ import database from '@react-native-firebase/database';
 import auth from '@react-native-firebase/auth';
 import {useIsFocused} from '@react-navigation/native';
 import {getDistance} from 'geolib';
+import {GooglePlacesAutocomplete} from 'react-native-google-places-autocomplete';
 
 const {width, height} = Dimensions.get('window');
 const MapScreen = props => {
@@ -42,6 +45,22 @@ const MapScreen = props => {
   const [interestedKey, setInterestedKey] = useState(null);
   const [markerList, setMarkerList] = useState([]);
   const [markerKeys, setMarkerKeys] = useState([]);
+  const [searchHeight, setSearchHeight] = useState(50);
+  const [mapData, setMapData] = useState(null);
+  const [mapValue, setMapValue] = useState(null);
+  const [searchRegion, setSearchRegion] = useState(null);
+
+  const ref = useRef();
+
+  useEffect(() => {
+    const isFocused = ref.current?.isFocused();
+    console.log('isFocused', isFocused);
+    if (isFocused) {
+      setSearchHeight(320);
+    } else {
+      setSearchHeight(50);
+    }
+  }, [ref, mapData, mapValue]);
 
   useEffect(() => {
     database()
@@ -258,201 +277,283 @@ const MapScreen = props => {
   }, [addressList]);
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={addMode ? styles.addAddress : styles.addAddressMOde}
-        onPress={() => changeMode()}>
-        {addMode ? (
-          <Image
-            style={{width: 30, height: 30}}
-            source={require('../../assets/house-empt.png')}
-          />
-        ) : (
-          <Image
-            style={{width: 30, height: 30}}
-            source={require('../../assets/house-Icon.png')}
-          />
-        )}
-      </TouchableOpacity>
-
-      {addMode && (
+    <>
+      <GooglePlacesAutocomplete
+        placeholder="Enter Location"
+        minLength={2}
+        autoFocus={true}
+        ref={ref}
+        returnKeyType={'default'}
+        fetchDetails={true}
+        textInputProps={{
+          onChangeText: data => {
+            setMapValue(data);
+          },
+          onBlur: () => {
+            setSearchHeight(50);
+          },
+        }}
+        onFail={error => console.error(error)}
+        styles={{
+          container: {
+            position: 'absolute',
+            left: Platform.OS == 'ios' ? 30 : 20,
+            top: Platform.OS == 'ios' ? 20 : 10,
+            zIndex: 102,
+            width: '90%',
+            height: searchHeight,
+            backgroundColor: 'white',
+            borderColor: 'gray',
+            borderWidth: 1,
+            borderRadius: 15,
+            paddingHorizontal: 20,
+          },
+          listView: {
+            position: 'absolute',
+            zIndex: 103,
+            elevation: 3,
+            top: 40,
+            paddingHorizontal: 15,
+          },
+        }}
+        onPress={(data, details) => {
+          console.log(details.geometry.location);
+          setMapData(data);
+          setSearchRegion({
+            latitude: details.geometry.location.lat,
+            longitude: details.geometry.location.lng,
+            latitudeDelta: 0.04,
+            longitudeDelta: 0.05,
+          });
+        }}
+        query={{
+          key: 'AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw',
+          language: 'en',
+        }}
+      />
+      <View style={styles.container} keyboardShouldPersistTaps={'always'}>
         <TouchableOpacity
-          style={styles.plusIcon}
-          onPress={() => setShadowMode(!shadowMode)}>
-          {shadowMode ? (
-            <Text style={{fontSize: 40, color: '#3eadac'}}>✕</Text>
+          style={addMode ? styles.addAddress : styles.addAddressMOde}
+          onPress={() => changeMode()}>
+          {addMode ? (
+            <Image
+              style={{width: 30, height: 30}}
+              source={require('../../assets/house-empt.png')}
+            />
           ) : (
-            <Text style={{fontSize: 40, color: '#3eadac'}}>±</Text>
+            <Image
+              style={{width: 30, height: 30}}
+              source={require('../../assets/house-Icon.png')}
+            />
           )}
         </TouchableOpacity>
-      )}
 
-      {addMode ? (
-        <MapView
-          style={{flex: 1, opacity: shadowMode ? 0.7 : 1}}
-          region={newMarker}
-          onPress={e => (shadowMode ? addMarker(e) : e.stopPropagation())}>
-          {buyerMarkers.map((marker, i) => (
-            <Marker
-              key={i}
-              coordinate={marker.latlng}
-              title={marker.address}
-              onPress={e => {
-                e.stopPropagation();
-                deleteAlert(marker.latlng);
-              }}>
-              <Image
-                source={require('../../assets/seller-marker.png')}
-                style={{width: 30, height: 40}}
-                resizeMode="contain"
-              />
-            </Marker>
-          ))}
-        </MapView>
-      ) : (
-        <MapView
-          style={{flex: 1}}
-          onPress={event => {
-            const coordinates = event.nativeEvent.coordinate;
-            markerList.flat().map((zone, index) => {
-              const distance = getDistance(
-                {
-                  latitude: coordinates.latitude,
-                  longitude: coordinates.longitude,
-                },
-                {latitude: zone.coordinate.lat, longitude: zone.coordinate.lng},
-              );
-              if (distance <= 5000) {
-                onInterested(zone, index);
-              }
-            });
-          }}
-          initialRegion={{
-            latitude: 50.4501,
-            longitude: 30.523,
-            latitudeDelta: 0.5,
-            longitudeDelta: 0.5,
-          }}>
-          {markerList.flat().map((marker, index) => {
-            let alredyInterested;
-            if (marker.userId) {
-              alredyInterested = Object.values(marker.userId).includes(userId);
-            }
+        {addMode && (
+          <TouchableOpacity
+            style={styles.plusIcon}
+            onPress={() => setShadowMode(!shadowMode)}>
+            {shadowMode ? (
+              <Text style={{fontSize: 40, color: '#3eadac'}}>✕</Text>
+            ) : (
+              <Text style={{fontSize: 40, color: '#3eadac'}}>±</Text>
+            )}
+          </TouchableOpacity>
+        )}
 
-            return (
-              <Circle
-                key={index}
-                onPress={e => onInterested(marker, index)}
-                radius={5000}
-                fillColor={
-                  alredyInterested
-                    ? 'rgba(123, 239, 178, .5)'
-                    : 'rgba(62, 173, 172, 0.5)'
+        {addMode ? (
+          <MapView
+            style={{flex: 1, opacity: shadowMode ? 0.7 : 1}}
+            region={searchRegion || newMarker}
+            onPress={e => (shadowMode ? addMarker(e) : e.stopPropagation())}>
+            {buyerMarkers.map((marker, i) => (
+              <Marker
+                key={i}
+                coordinate={marker.latlng}
+                title={marker.address}
+                onPress={e => {
+                  e.stopPropagation();
+                  deleteAlert(marker.latlng);
+                }}>
+                <Image
+                  source={require('../../assets/seller-marker.png')}
+                  style={{width: 30, height: 40}}
+                  resizeMode="contain"
+                />
+              </Marker>
+            ))}
+          </MapView>
+        ) : (
+          <MapView
+            style={{flex: 1}}
+            onPress={event => {
+              const coordinates = event.nativeEvent.coordinate;
+              markerList.flat().map((zone, index) => {
+                if (zone.coordinate) {
+                  const distance = getDistance(
+                    {
+                      latitude: coordinates.latitude,
+                      longitude: coordinates.longitude,
+                    },
+                    {
+                      latitude: zone.coordinate.lat,
+                      longitude: zone.coordinate.lng,
+                    },
+                  );
+                  if (distance <= 5000) {
+                    onInterested(zone, index);
+                  }
                 }
-                strokeColor={'rgba(62, 173, 172, 1)'}
-                center={{
-                  latitude: marker.coordinate.lat,
-                  longitude: marker.coordinate.lng,
-                }}
-              />
-            );
-          })}
-        </MapView>
-      )}
+              });
+            }}
+            region={searchRegion}
+            initialRegion={{
+              latitude: 50.4501,
+              longitude: 30.523,
+              latitudeDelta: 0.5,
+              longitudeDelta: 0.5,
+            }}>
+            {markerList.flat().map((marker, index) => {
+              let alredyInterested;
+              if (marker.userId) {
+                alredyInterested = Object.values(marker.userId).includes(
+                  userId,
+                );
+              }
 
-      <Modal transparent={true} animationType={'fade'} visible={interested}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <TouchableOpacity
-              style={{position: 'absolute', right: 15, top: 15}}
-              onPress={() => setInterested(false)}>
-              <Image
-                style={{width: 15, height: 15}}
-                source={require('../../assets/cancel.png')}
-              />
-            </TouchableOpacity>
-            <Text style={{fontSize: 20, fontWeight: '600'}}>
-              About this home
-            </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                width: '80%',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-              <View style={{justifyContent: 'center', alignItems: 'center'}}>
-                <Text style={{fontSize: 18, marginTop: 15, fontWeight: '600'}}>
-                  Price
-                </Text>
-                <Text style={styles.modalText}>{interestedData.price} $</Text>
-              </View>
-              <View style={{justifyContent: 'center', alignItems: 'center'}}>
-                <Text style={{fontSize: 18, marginTop: 15, fontWeight: '600'}}>
-                  Time Frame
-                </Text>
-                <Text style={styles.modalText}>
-                  {interestedData.timeFrame} D
-                </Text>
-              </View>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: 20,
-              }}>
-              {alreadyInterested ? (
-                <View
-                  style={{
-                    width: '100%',
-                    borderTopWidth: 1,
-                    padding: 10,
-                    alignItems: 'center',
-                    borderColor: '#3eadac',
-                  }}>
+              if (!marker.coordinate) {
+                return null;
+              }
+
+              return (
+                <Circle
+                  key={index}
+                  onPress={e => onInterested(marker, index)}
+                  radius={5000}
+                  fillColor={
+                    alredyInterested
+                      ? 'rgba(123, 239, 178, .5)'
+                      : 'rgba(62, 173, 172, 0.5)'
+                  }
+                  strokeColor={'rgba(62, 173, 172, 1)'}
+                  center={{
+                    latitude: marker.coordinate.lat,
+                    longitude: marker.coordinate.lng,
+                  }}
+                />
+              );
+            })}
+          </MapView>
+        )}
+
+        <Modal transparent={true} animationType={'fade'} visible={interested}>
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <TouchableOpacity
+                style={{position: 'absolute', right: 15, top: 15}}
+                onPress={() => setInterested(false)}>
+                <Image
+                  style={{width: 15, height: 15}}
+                  source={require('../../assets/cancel.png')}
+                />
+              </TouchableOpacity>
+              <Text style={{fontSize: 20, fontWeight: '600'}}>
+                About this home
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  width: '80%',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                <View style={{justifyContent: 'center', alignItems: 'center'}}>
                   <Text
-                    style={{
-                      fontSize: 15,
-                      textTransform: 'uppercase',
-                      fontWeight: '600',
-                      color: '#3eadac',
-                    }}>
-                    You’re already interested in it
+                    style={{fontSize: 18, marginTop: 15, fontWeight: '600'}}>
+                    Price
+                  </Text>
+                  <Text style={styles.modalText}>{interestedData.price} $</Text>
+                </View>
+                <View style={{justifyContent: 'center', alignItems: 'center'}}>
+                  <Text
+                    style={{fontSize: 18, marginTop: 15, fontWeight: '600'}}>
+                    Time Frame
+                  </Text>
+                  <Text style={styles.modalText}>
+                    {interestedData.timeFrame} D
                   </Text>
                 </View>
-              ) : (
-                <TouchableOpacity
-                  style={{
-                    width: '100%',
-                    borderTopWidth: 1,
-                    padding: 10,
-                    alignItems: 'center',
-                    borderColor: '#3eadac',
-                  }}
-                  onPress={() => saveInterested()}>
-                  <Text
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: 20,
+                }}>
+                {alreadyInterested ? (
+                  <View
                     style={{
-                      fontSize: 15,
-                      textTransform: 'uppercase',
-                      fontWeight: '600',
-                      color: '#3eadac',
+                      width: '100%',
+                      borderTopWidth: 1,
+                      padding: 10,
+                      alignItems: 'center',
+                      borderColor: '#3eadac',
                     }}>
-                    I’m interested in it
-                  </Text>
-                </TouchableOpacity>
-              )}
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        textTransform: 'uppercase',
+                        fontWeight: '600',
+                        color: '#3eadac',
+                      }}>
+                      You’re already interested in it
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={{
+                      width: '100%',
+                      borderTopWidth: 1,
+                      padding: 10,
+                      alignItems: 'center',
+                      borderColor: '#3eadac',
+                    }}
+                    onPress={() => saveInterested()}>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        textTransform: 'uppercase',
+                        fontWeight: '600',
+                        color: '#3eadac',
+                      }}>
+                      I’m interested in it
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   buttonWrap: {
     top: 100,
+  },
+  searchInput: {
+    position: 'absolute',
+    left: Platform.OS == 'ios' ? 30 : 20,
+    top: Platform.OS == 'ios' ? 20 : 10,
+    zIndex: 2,
+    width: '90%',
+    height: 40,
+    backgroundColor: 'white',
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 15,
+    paddingHorizontal: 20,
   },
   logout: {
     backgroundColor: '#3eadac',
@@ -462,7 +563,7 @@ const styles = StyleSheet.create({
   addAddress: {
     position: 'absolute',
     right: Platform.OS == 'ios' ? 30 : 20,
-    top: Platform.OS == 'ios' ? 60 : 40,
+    top: Platform.OS == 'ios' ? 90 : 70,
     zIndex: 1,
     width: 50,
     height: 50,
@@ -474,7 +575,7 @@ const styles = StyleSheet.create({
   addAddressMOde: {
     position: 'absolute',
     right: Platform.OS == 'ios' ? 30 : 20,
-    top: Platform.OS == 'ios' ? 60 : 40,
+    top: Platform.OS == 'ios' ? 90 : 70,
     zIndex: 1,
     width: 50,
     height: 50,
@@ -487,7 +588,7 @@ const styles = StyleSheet.create({
   plusIcon: {
     position: 'absolute',
     right: Platform.OS == 'ios' ? 30 : 20,
-    top: 130,
+    top: 150,
     width: 50,
     height: 50,
     justifyContent: 'center',
@@ -534,7 +635,7 @@ const styles = StyleSheet.create({
   },
   centeredView: {
     flex: 1,
-    zIndex: 100,
+    zIndex: 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',

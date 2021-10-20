@@ -72,13 +72,7 @@ const BuyerRegister = props => {
     }
   };
   const registerUser = () => {
-    if (
-      email === '' ||
-      password === '' ||
-      firstName === '' ||
-      lastName === '' ||
-      mobile === ''
-    ) {
+    if (email === '' || password === '') {
       Alert.alert('All fields are required!');
     } else {
       auth()

@@ -1,74 +1,75 @@
 // components/dashboard.js
 
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, Button, Platform, Dimensions, Alert } from "react-native";
-import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
-import { TouchableOpacity } from "react-native-gesture-handler";
-import firebase from "../../database/fireBase";
+import React, {useState, useEffect} from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  Button,
+  Platform,
+  Dimensions,
+  Alert,
+} from 'react-native';
+import RadioForm, {
+  RadioButton,
+  RadioButtonInput,
+  RadioButtonLabel,
+} from 'react-native-simple-radio-button';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import firebase from '../../database/fireBase';
 import auth from '@react-native-firebase/auth';
-import database from "@react-native-firebase/database";
+import database from '@react-native-firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window')
+const {width, height} = Dimensions.get('window');
 
 const radio_props = [
-  { label: 'Yes', value: 0 },
-  { label: 'No', value: 1 },
-
+  {label: 'Yes', value: 0},
+  {label: 'No', value: 1},
 ];
 
-const SellerHome = (props) => {
-  const [radioValue, setRadioValue] = useState(0)
-  const [address, setAddress] = useState('')
-  const [coordinate, setCoordinate] = useState(null)
-  const [placeId, setPlaceId] = useState(null)
-  const [price, setPrice] = useState('')
-  const [timeFrame, setTimeFrame] = useState('')
-  const [whereNew, setWhereNew] = useState('')
-  const [addressId, setAddressId] = useState(null)
-  const [currentKey, setCurrentKey] = useState(null)
+const SellerHome = props => {
+  const [radioValue, setRadioValue] = useState(0);
+  const [address, setAddress] = useState('');
+  const [coordinate, setCoordinate] = useState(null);
+  const [placeId, setPlaceId] = useState(null);
+  const [price, setPrice] = useState('');
+  const [timeFrame, setTimeFrame] = useState('');
+  const [whereNew, setWhereNew] = useState('');
+  const [addressId, setAddressId] = useState(null);
+  const [currentKey, setCurrentKey] = useState(null);
 
   useEffect(() => {
-
     if (props.route.params.addressId !== false) {
-      const id = props.route.params.addressId
-      const home = props.route.params.home
-      const userId = props.route.params.userId
-      setAddressId(id)
-      console.log(id, 'snapshot.val()')
-      setAddress(home.address)
-      setPrice(home.price)
-      setCoordinate(home.coordinate)
-      setTimeFrame(home.timeFrame)
-      setRadioValue(home.needBuy)
-      setWhereNew(home.whereNew)
-
+      const id = props.route.params.addressId;
+      const home = props.route.params.home;
+      const userId = props.route.params.userId;
+      setAddressId(id);
+      console.log(id, 'snapshot.val()');
+      setAddress(home.address);
+      setPrice(home.price);
+      setCoordinate(home.coordinate);
+      setTimeFrame(home.timeFrame);
+      setRadioValue(home.needBuy);
+      setWhereNew(home.whereNew);
     }
-  }, [props.route.params.addressId])
+  }, [props.route.params.addressId]);
 
   const onSubmit = async () => {
-    if (address.length == 0 ||
-      price.length == 0 ||
-      timeFrame.length == 0
-    ) {
-      Alert.alert('All fields are required')
-      return
+    if (address.length == 0 || price.length == 0 || timeFrame.length == 0) {
+      props.navigation.navigate('AboutRivenn', {userType: 'Seller'});
+      return;
     }
-    const userId = auth().currentUser.uid
-    if (address.length == 0) {
-      Alert.alert(
-        "Address can't be empty!",
-        '',
-        [
-
-          {
-            text: "Ok",
-            style: "cancel"
-          },
-        ],
-
-      );
-    }
+    const userId = auth().currentUser.uid;
+    // if (address.length == 0) {
+    //   Alert.alert("Address can't be empty!", '', [
+    //     {
+    //       text: 'Ok',
+    //       style: 'cancel',
+    //     },
+    //   ]);
+    // }
     firebase
       .database()
       .ref('users/' + userId + '/homes/')
@@ -79,10 +80,9 @@ const SellerHome = (props) => {
         timeFrame: timeFrame,
         whereNew: whereNew,
         needBuy: radioValue,
-      }
-      )
-      .then((data) => {
-        let key = data.getKey()
+      })
+      .then(data => {
+        let key = data.getKey();
         firebase
           .database()
           .ref('AllSellerHomes/' + key)
@@ -94,32 +94,26 @@ const SellerHome = (props) => {
             whereNew: whereNew,
             needBuy: radioValue,
             sellerId: userId,
-          }
-          )
-          .then((data) => {
-            console.log('Saved Data', data)
-            if (props.route.params.goBack) {
-              props.navigation.goBack()
-            } else {
-              props.navigation.navigate('AboutRivenn', { userType: 'Seller' })
-            }
           })
+          .then(data => {
+            console.log('Saved Data', data);
+            if (props.route.params.goBack) {
+              props.navigation.goBack();
+            } else {
+              props.navigation.navigate('AboutRivenn', {userType: 'Seller'});
+            }
+          });
       })
-      .catch((error) => {
-        console.log('Storing Error', error)
-      })
-
-
-  }
+      .catch(error => {
+        console.log('Storing Error', error);
+      });
+  };
   const onUpdate = () => {
-    if (address.length == 0 ||
-      price.length == 0 ||
-      timeFrame.length == 0
-    ) {
-      Alert.alert('All fields are required')
-      return
+    if (address.length == 0 || price.length == 0 || timeFrame.length == 0) {
+      Alert.alert('All fields are required');
+      return;
     }
-    const userId = auth().currentUser.uid
+    const userId = auth().currentUser.uid;
     firebase
       .database()
       .ref('users/' + userId + '/homes/' + addressId)
@@ -130,8 +124,7 @@ const SellerHome = (props) => {
         timeFrame: timeFrame,
         whereNew: whereNew,
         needBuy: radioValue,
-      }
-      )
+      });
     firebase
       .database()
       .ref('AllSellerHomes/' + addressId)
@@ -143,23 +136,27 @@ const SellerHome = (props) => {
         whereNew: whereNew,
         needBuy: radioValue,
         userId: userId,
-
-      }
-      )
-      .then((data) => {
-        console.log('Updated', data)
-        props.navigation.goBack()
       })
-  }
+      .then(data => {
+        console.log('Updated', data);
+        props.navigation.goBack();
+      });
+  };
   return (
     <View style={styles.container}>
       <View style={styles.wrapper}>
-
         <View style={styles.inputItem}>
           <Text style={styles.inputTitle}>My Address: </Text>
           <View style={styles.input}>
-            <TouchableOpacity onPress={() => props.navigation.navigate('AddressScreen', { setAddress: setAddress, setCoordinate: setCoordinate, setPlaceId: setPlaceId })}>
-              <Text style={{ fontSize: 17, }}> {address}</Text>
+            <TouchableOpacity
+              onPress={() =>
+                props.navigation.navigate('AddressScreen', {
+                  setAddress: setAddress,
+                  setCoordinate: setCoordinate,
+                  setPlaceId: setPlaceId,
+                })
+              }>
+              <Text style={{fontSize: 17}}> {address}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -167,106 +164,135 @@ const SellerHome = (props) => {
           <Text style={styles.inputTitle}>Price: </Text>
           <TextInput
             style={styles.input}
-            onChangeText={(value) => setPrice(value)}
+            onChangeText={value => setPrice(value)}
             value={price}
           />
         </View>
 
         <View style={styles.inputItem}>
-          <Text style={{ width: '40%', fontSize: 17 }}>Timeframe to sell: </Text>
+          <Text style={{width: '40%', fontSize: 17}}>Timeframe to sell: </Text>
           <TextInput
-            style={{ width: '60%', padding: 0, borderBottomWidth: 1, borderColor: '#3eadac', fontSize: 17, }}
-            onChangeText={(value) => setTimeFrame(value)}
+            style={{
+              width: '60%',
+              padding: 0,
+              borderBottomWidth: 1,
+              borderColor: '#3eadac',
+              fontSize: 17,
+            }}
+            onChangeText={value => setTimeFrame(value)}
             value={timeFrame}
           />
         </View>
         <View style={styles.radioItem}>
-          <Text style={styles.radioTitle}>Do you need to buy another home?</Text>
+          <Text style={styles.radioTitle}>
+            Do you need to buy another home?
+          </Text>
           <View style={styles.radioWrapper}>
-
-            <RadioForm
-              style={styles.radioForm}
-            >
-              {
-                radio_props.map((obj, i) => {
-                  return <RadioButton labelHorizontal={true} key={i} wrapStyle={{ width: '50%', marginTop: 10, }} >
+            <RadioForm style={styles.radioForm}>
+              {radio_props.map((obj, i) => {
+                return (
+                  <RadioButton
+                    labelHorizontal={true}
+                    key={i}
+                    wrapStyle={{width: '50%', marginTop: 10}}>
                     {/*  You can set RadioButtonLabel before RadioButtonInput */}
                     <RadioButtonInput
                       obj={obj}
                       index={i}
                       isSelected={radioValue === obj.value}
-                      onPress={(value) => setRadioValue(value)}
+                      onPress={value => setRadioValue(value)}
                       buttonInnerColor={'#3eadac'}
                       buttonOuterColor={'#3eadac'}
                       buttonSize={15}
                       buttonStyle={{}}
-
                     />
                     <RadioButtonLabel
                       obj={obj}
                       index={i}
                       labelHorizontal={true}
-                      onPress={(value) => setRadioValue(value)}
-                      labelStyle={{ fontSize: 17, color: '#000' }}
+                      onPress={value => setRadioValue(value)}
+                      labelStyle={{fontSize: 17, color: '#000'}}
                     />
                   </RadioButton>
-                })
-              }
+                );
+              })}
             </RadioForm>
           </View>
           <View style={styles.inputItem}>
-            <Text style={{ width: '40%', fontSize: 17 }}>if Yes, where: </Text>
+            <Text style={{width: '40%', fontSize: 17}}>if Yes, where: </Text>
             <TextInput
-              style={{ width: '60%', borderBottomWidth: 1, borderColor: '#3eadac', fontSize: 17, }}
-              onChangeText={(value) => setWhereNew(value)}
+              style={{
+                width: '60%',
+                borderBottomWidth: 1,
+                borderColor: '#3eadac',
+                fontSize: 17,
+              }}
+              onChangeText={value => setWhereNew(value)}
               value={whereNew}
             />
           </View>
         </View>
-
       </View>
 
+      {!props.route.params.userId && (
+        <View style={[styles.buttonWrapper, {justifyContent: 'space-between'}]}>
+          {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
+          {/*  <Text style={styles.textStyle}>Previous</Text>*/}
+          {/*</TouchableOpacity>*/}
+          <TouchableOpacity
+            style={styles.submit}
+            onPress={() => props.navigation.goBack()}>
+            <Text style={styles.textStyle}>Cansel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+            <Text style={styles.textStyle}>Next</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-
-      {!props.route.params.userId && <View style={[styles.buttonWrapper, { justifyContent: 'space-between' }]}>
-        {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
-        {/*  <Text style={styles.textStyle}>Previous</Text>*/}
-        {/*</TouchableOpacity>*/}
-        <TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack()}>
-          <Text style={styles.textStyle}>Cansel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-          <Text style={styles.textStyle}>Next</Text>
-        </TouchableOpacity>
-
-      </View>}
-
-      {props.route.params.userId && <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', }}>
-        <TouchableOpacity style={styles.cancel} onPress={() => props.navigation.goBack()}>
-          <Text style={{ color: '#3eadac', textTransform: 'uppercase', fontWeight: '500', fontSize: 15, }}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
-          <Text style={styles.textStyle}>Update</Text>
-        </TouchableOpacity>
-
-      </View>}
+      {props.route.params.userId && (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+          }}>
+          <TouchableOpacity
+            style={styles.cancel}
+            onPress={() => props.navigation.goBack()}>
+            <Text
+              style={{
+                color: '#3eadac',
+                textTransform: 'uppercase',
+                fontWeight: '500',
+                fontSize: 15,
+              }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+            <Text style={styles.textStyle}>Update</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
-  )
-}
+  );
+};
 
-export default SellerHome
+export default SellerHome;
 const styles = StyleSheet.create({
   buttonWrap: {
     top: 100,
   },
   container: {
     flex: 1,
-    display: "flex",
+    display: 'flex',
     paddingTop: Platform.OS === 'ios' ? 100 : 50,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   title: {
     width: '100%',
@@ -285,7 +311,7 @@ const styles = StyleSheet.create({
   uploadText: {
     textTransform: 'uppercase',
     fontSize: 17,
-    color: '#3eadac'
+    color: '#3eadac',
   },
   requiresWrapper: {
     marginTop: 30,
@@ -301,7 +327,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inputItem: {
-    display: "flex",
+    display: 'flex',
     flexDirection: 'row',
     marginTop: 15,
     justifyContent: 'center',
@@ -358,7 +384,7 @@ const styles = StyleSheet.create({
   submit: {
     marginTop: 30,
     width: width / 2 - 50,
-    display: "flex",
+    display: 'flex',
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
@@ -367,7 +393,7 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 30,
     width: width / 2 - 30,
-    display: "flex",
+    display: 'flex',
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',

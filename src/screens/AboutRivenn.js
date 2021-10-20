@@ -100,7 +100,7 @@ const AboutRivenn = props => {
       </View>
       {error && (
         <Text style={{color: 'red', fontSize: 15, marginTop: 10}}>
-          Pls check all buttons to continue
+          Please, agree the terms
         </Text>
       )}
       <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
