@@ -4,3 +4,58 @@
   width: 100vw;
   background-color: #bbf0ef;
 }
+
+
+.modal {
+    width: 100vw;
+    height: 80vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: auto;
+    padding: 10vh 0;
+}
+
+.zip-input {
+    appearance: menulist-button;
+    background-image: none !important;
+    background-color: -internal-light-dark(rgb(232, 240, 254), rgba(70, 90, 126, 0.4)) !important;
+    color: -internal-light-dark(black, white) !important;
+    font: inherit;
+    color: currentColor;
+    width: calc(100% - 28px) !important;
+    border: 1px solid rgba(0, 0, 0, 0.23) !important;
+    border-radius: 4px;
+    height: 1.1876em;
+    margin: 0;
+    display: block;
+    padding: 6px 0 7px;
+    min-width: 0;
+    background: none;
+    box-sizing: content-box;
+    animation-name: mui-auto-fill-cancel;
+    letter-spacing: inherit;
+    animation-duration: 10ms;
+    -webkit-tap-highlight-color: transparent;
+    padding: 18.5px 14px;
+    animation-name: mui-auto-fill;
+    animation-duration: 5000s;
+    margin-bottom: 20px;
+}
+
+.multiple-value-text-input-item-container p {
+  display: flex;
+  line-height:37px;
+  white-space:nowrap;
+  flex-wrap: wrap;
+}
+
+.multiple-value-text-input-item-container p span {
+  line-height: 20px;
+  margin-bottom: 10px;
+}
+
+.MuiTypography-h5 {
+  word-break: break-word;
+}
+

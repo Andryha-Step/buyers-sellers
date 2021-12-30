@@ -9,6 +9,10 @@ import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
+import CreateAgentModal from './CreateAgentModal';
+import Geocoder from 'react-native-geocoding';
+// import {RenderCellExpand} from './renderCellExpand'
+import moment from 'moment';
 
 export default function Dashboard() {
 
@@ -16,6 +20,70 @@ export default function Dashboard() {
     const [propertyModal, setPropertyModal] = useState(null);
     const [deletingModal, setDeletingModal] = useState(null);
     const [selectionModel, setSelectionModel] = useState(null);
+    const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+    const [isAgent, setIsAgent] = useState(true);
+    const [agentZipCodes, setAgentZipCodes] = useState([]);
+    const [agentData, setAgentData] = useState(null);
+    const [agentsData, setAgentsData] = useState([]);
+
+    console.log(`agentsData`, agentsData)
+
+    Geocoder.init('AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw');
+
+    useEffect(() => {
+      const getUserType = async () => {
+        const dbRef = firebase.database().ref();
+        const userSnap = await dbRef.child('users').child(firebase.auth().currentUser.uid).get();
+        console.log(`userSnap`, userSnap.val())
+        if (userSnap.val().userType === 'agent') {
+          setIsAgent(true);
+          setAgentZipCodes(userSnap.val().zipCodes);
+        } else {
+          setIsAgent(false);
+        }
+      }
+
+      getUserType();
+
+      firebase.database().ref().child('users').on('value', snap => {
+        if (snap.val()) setAgentsData(Object.values(snap.val()).filter(user => user.userType === 'agent').map((val, i) => ({...val, id: i})))
+      })
+
+      // const dataSetter = async () => {
+
+      //   setData(await Promise.all(data.map(async d => {
+      //     if (d.coordinate) {
+      //       const zipCode = await getZipCode(d.coordinate.lat, d.coordinate.lng);
+
+      //       return ({...d, zipCode})
+      //     } else return d;
+      //   })));
+      // }
+      // dataSetter();
+    }, [])
+
+    useEffect(() => {
+      const filterData = async () => {
+        if (isAgent && data && data.length) {
+          console.log(`data`, data)
+          setAgentData(await Promise.all(data.map(async d => {
+            if (d.coordinate) {
+              const zipCode = await getZipCode(d.coordinate.lat, d.coordinate.lng);
+
+              return ({...d, zipCode})
+            } else return d;
+          })));
+        }
+      }
+
+      filterData();
+
+      if (agentData && agentData.length > 0) {
+        setAgentData(agentData.filter(d => agentZipCodes.includes(d.zipCode)))
+      }
+    }, [data])
+
+
 
     // 'interests' | 'property'
     const [displayMode, setDisplayMode] = useState('interests');
@@ -29,17 +97,34 @@ export default function Dashboard() {
                     (await firebase.database().ref().child('InterestedUsers').child(property.id).child('userId').get()).val() || {}).map(el => ({...el[1], id: el[0]})
                 )
                 return {
-                    ...property, 
+                    ...property,
                     seller: typeof property.sellerId === 'string' ? (await firebase.database().ref().child('users').child(property.sellerId).get()).val() : null,
                     interestsID,
                     interests: await Promise.all(
-                        interestsID.map( 
-                            async interest => ({...(await firebase.database().ref().child('users').child(interest.buyerId).get()).val(), id: interest.buyerId, interestID: interest.id}) 
+                        interestsID.map(
+                            async interest => ({...(await firebase.database().ref().child('users').child(interest.buyerId).get()).val(), id: interest.buyerId, interestID: interest.id})
                         )
                     )
                 }
             }))
-            setData(propertyObjectsWithSellers)
+            setData(await Promise.all(propertyObjectsWithSellers.map(async d => {
+              if (d.coordinate) {
+                const zipCode = await getZipCode(d.coordinate.lat, d.coordinate.lng);
+
+                return ({...d, zipCode: Number.isInteger(+zipCode) ? zipCode : 'Zip code not resolved'})
+              } else return d;
+            })));
+            // const dataSetter = async () => {
+
+              // setData(await Promise.all(data.map(async d => {
+              //   if (d.coordinate) {
+              //     const zipCode = await getZipCode(d.coordinate.lat, d.coordinate.lng);
+
+              //     return ({...d, zipCode})
+              //   } else return d;
+              // })));
+            // }
+            // dataSetter();
         })
     }
 
@@ -50,11 +135,11 @@ export default function Dashboard() {
     }
 
     const handleRowClick = async ({ row }) => {
-        if (displayMode === 'property') {
-            setPropertyModal(row); 
+        if (displayMode === 'property' || displayMode === 'review') {
+            setPropertyModal(row);
         }
         if (displayMode === 'interests') {
-            setPropertyModal(row.property); 
+            setPropertyModal(row.property);
         }
     }
 
@@ -95,18 +180,68 @@ export default function Dashboard() {
             }))
         }
 
-        // I think it's a very bad idea to place whole object in db TWICE, but who am I to decide ¯\_(ツ)_/¯
+        const userRef = await firebase.database().ref().child(`users/${firebase.auth().currentUser.uid}`)
+        const snap = await userRef.get();
+
+        let deletedCount = 0
+
+          if(snap.val() && snap.val().deletedCount !== undefined) {
+            console.log('deleted count if------')
+            deletedCount = +snap.val().deletedCount;
+          }
+        deletedCount++;
+        console.log(`deletedCount`, deletedCount)
+        const res = await userRef.update({deletedCount: deletedCount})
+
+        console.log(`userSnap.val()`, snap.val(), res)
 
         setDeletingModal('success');
     }
 
+    const getZipCode = (lat, lng) => {
+      const res = Geocoder.from(lat, lng)
+        .then(json => {
+          const zipCode =
+            json.results[0].address_components[
+              json.results[0].address_components.length - 1
+            ].long_name;
+            return zipCode;
+        })
+        .catch(error => 'Error while handling zip-code');
+      return Promise.resolve(res);
+    };
+
+    const checkZipCode = () => {
+      // lat: 56.3106693, lng: 38.1553774  56.313401, 38.138928
+      //  56.3405205, lng: 38.1729521
+      // 56.340529868308224, 38.172977923527824
+
+      //lat: 55.755826
+      //lng: 37.6173
+      const res = Geocoder.from(51.2763027, 30.2218992)
+        .then(json => {
+            console.log(json);
+        })
+        .catch(error => 'Error while handling zip-code');
+      return Promise.resolve(res);
+    };
+
+    checkZipCode();
+
     const formatData = () => {
+      console.log(`isAgent`, isAgent)
         if (displayMode === 'property') {
-            return data
-        } 
+            if (isAgent) {
+              return agentData.filter(d => agentZipCodes.includes(d.zipCode));
+            } else {
+
+              return data
+            }
+        }
 
         if (displayMode === 'interests') {
-            return (data || []).reduce((ac, property) => {
+            if (isAgent) {
+              return (agentData || []).filter(d => agentZipCodes.includes(d.zipCode)).reduce((ac, property) => {
                 if (property.interests && property.interests.length > 0) {
                     return [...ac, ...property.interests.map(interest => ({
                         id: property.id + '__' + interest.interestID + '__' + interest.id,
@@ -116,15 +251,45 @@ export default function Dashboard() {
                 }
                 return ac;
             }, [])
-        }
+            } else {
+              return (data || []).reduce((ac, property) => {
+                if (property.interests && property.interests.length > 0) {
+                  return [...ac, ...property.interests.map(interest => ({
+                    id: property.id + '__' + interest.interestID + '__' + interest.id,
+                    interest,
+                    property
+                  }))]
+                }
+                return ac;
+              }, [])
+            }
+            }
+
+          if (displayMode === 'review') {
+            if (isAgent) {
+              return agentData.filter(d => d.status === 'pending').filter(d => agentZipCodes.includes(d.zipCode));
+            } else {
+
+              return data.filter(d => d.status === 'pending')
+            }
+          }
     }
 
     useEffect(() => {
         fetchData()
-    }, [])
-    
+    }, []);
+
+    console.log(`propertyModal`, propertyModal);
+
+    const updateStatus = async (status) => {
+      await firebase.database().ref().child(`AllSellerHomes/${propertyModal.id}`).update({status})
+      await firebase.database().ref().child(`users/${propertyModal.sellerId}/homes/${propertyModal.id}`).update({status})
+      setPropertyModal(null);
+    }
+
     return (
         <>
+            <CreateAgentModal open={isAgentModalOpen} onClose={() => setIsAgentModalOpen(false)} />
             {
                 !data && <LoadingContainer>
                     <CircularProgress
@@ -141,11 +306,11 @@ export default function Dashboard() {
                         <Title>
                             Buyers&Sellers Property Dashboard
                             {
-                                (selectionModel || {}).length > 0 && 
-                                    <Button 
-                                        color="primary" 
-                                        variant='contained' 
-                                        style={{width: 200, marginLeft: '1rem'}} 
+                                (selectionModel || {}).length > 0 &&
+                                    <Button
+                                        color="primary"
+                                        variant='contained'
+                                        style={{width: 200, marginLeft: '1rem'}}
                                         onClick={() => handleDeleteSelected(false)}
                                     >
                                             Delete selected
@@ -153,19 +318,58 @@ export default function Dashboard() {
                             }
                             <ModeSelector>
                                 <ModeSelectorElement selected={displayMode === 'interests'} onClick={() => setDisplayMode('interests')}>Interests</ModeSelectorElement> /
-                                <ModeSelectorElement selected={displayMode === 'property'} onClick={() => setDisplayMode('property')}>All Property</ModeSelectorElement> 
+                                <ModeSelectorElement selected={displayMode === 'property'} onClick={() => setDisplayMode('property')}>All Property</ModeSelectorElement> /
+                                <ModeSelectorElement selected={displayMode === 'review'} onClick={() => setDisplayMode('review')}>In review</ModeSelectorElement>
+                                {!isAgent && (
+                                  <>/ <ModeSelectorElement selected={displayMode === 'agents'} onClick={() => setDisplayMode('agents')}>Agents</ModeSelectorElement></>
+                                )}
                             </ModeSelector>
                         </Title>
                         <CurrentAuth>
                             {firebase.auth().currentUser.email}
+                            {!isAgent && (
+                              <Button color="primary" style={{width: 150}} onClick={() => setIsAgentModalOpen(true)}>Create Agent</Button>
+                            )}
                             <Button color="primary" variant='outlined' style={{width: 100}} onClick={() => firebase.auth().signOut()}>Logout</Button>
                         </CurrentAuth>
                     </Header>
-                    <div style={{ width: '90vw', height: '85vh' }}>
+                    {displayMode === 'agents' ? (
+                      <div style={{ width: '90vw', height: '85vh' }}>
+                        <DataGrid
+                            rows={agentsData}
+                            columns={ColumnsAgents}
+                            checkboxSelection={false}
+                            // disableSelectionOnClick
+                            autoPageSize
+                            // onRowClick={handleRowClick}
+                            // onSelectionModelChange={setSelectionModel}
+                            // selectionModel={selectionModel}
+                            style={{backgroundColor: 'white'}}
+                        />
+                      </div>
+                    ) : displayMode === 'review' ? (
+                      <div style={{ width: '90vw', height: '85vh' }}>
                         <DataGrid
                             rows={formatData()}
                             columns={(
-                                (displayMode === 'property' && ColumnsProperty) ||
+                                ((displayMode === 'property' || displayMode === 'review') && ColumnsProperty) ||
+                                (displayMode === 'interests' && ColumnsInterests)
+                            )}
+                            checkboxSelection={false}
+                            // disableSelectionOnClick
+                            autoPageSize
+                            onRowClick={handleRowClick}
+                            // onSelectionModelChange={setSelectionModel}
+                            // selectionModel={selectionModel}
+                            style={{backgroundColor: 'white'}}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ width: '90vw', height: '85vh' }}>
+                        <DataGrid
+                            rows={formatData()}
+                            columns={(
+                                ((displayMode === 'property' || displayMode === 'review') && ColumnsProperty) ||
                                 (displayMode === 'interests' && ColumnsInterests)
                             )}
                             checkboxSelection
@@ -176,10 +380,11 @@ export default function Dashboard() {
                             selectionModel={selectionModel}
                             style={{backgroundColor: 'white'}}
                         />
-                    </div>
+                      </div>
+                    )}
                 </Container>
             }
-            <Modal 
+            <Modal
                 open={!!propertyModal}
             >
                 <ModalInner
@@ -189,10 +394,17 @@ export default function Dashboard() {
                     {
                         propertyModal && <ModalWindow>
                             <Title style={{marginTop: 0}}>Property</Title>
+                            {displayMode === 'review' && (
+                              <div style={{marginBottom: '1rem'}}>
+                                <Button color="primary" variant='outlined' onClick={() => updateStatus('approved')} style={{width: 200, marginRight: '1rem'}}>Approve property</Button>
+                                <Button color="danger"  variant='outlined' onClick={() => updateStatus('rejected')} style={{width: 200, marginRight: '1rem'}}>Reject property</Button>
+                              </div>
+                            )}
                             <GridContainer>
                                 {
                                     getModalTableFromRow(propertyModal).map(cell => (
                                         <Card>
+                                            {console.log('cell', propertyModal)}
                                             <CardContent>
                                                 <Typography color="textSecondary" gutterBottom>
                                                     {cell.title}
@@ -208,7 +420,7 @@ export default function Dashboard() {
                             <Title style={{marginTop: 0}}>Seller</Title>
                             <GridContainer>
                                 {
-                                    propertyModal.seller 
+                                    propertyModal.seller
                                         ? getSellerTableFromRow(propertyModal.seller || {}).map(cell => (
                                             <Card>
                                                 <CardContent>
@@ -220,7 +432,7 @@ export default function Dashboard() {
                                                     </Typography>
                                                 </CardContent>
                                             </Card>
-                                        )) 
+                                        ))
                                         : <Typography color="error" gutterBottom>
                                             Seller was not found in database 😢 <br />
                                             Seller ID: {Object.values(propertyModal.userId)[0]}
@@ -247,20 +459,20 @@ export default function Dashboard() {
                                                             </Typography>
                                                         </CardContent>
                                                     </Card>
-                                                )) 
+                                                ))
                                             }
                                         </GridContainer>
                                     </>
                                 ))
                             }
                             {
-                                propertyModal.interests && propertyModal.interests.length === 0 && 
+                                propertyModal.interests && propertyModal.interests.length === 0 &&
                                     <Typography variant="h5" component="h2">
                                         No Interests
                                     </Typography>
                             }
                             {
-                                !propertyModal.interests && 
+                                !propertyModal.interests &&
                                     <CircularProgress
                                         variant="indeterminate"
                                         disableShrink
@@ -273,7 +485,7 @@ export default function Dashboard() {
                 </ModalInner>
             </Modal>
 
-            <Modal 
+            <Modal
                 open={!!deletingModal}
             >
                 <ModalInner
@@ -415,7 +627,7 @@ const ModeSelectorElement = styled.div`
         color: #28a8e9;
         cursor: pointer;
     `}
-` 
+`
 
 const ColumnsProperty = [
     {
@@ -424,10 +636,28 @@ const ColumnsProperty = [
         width: 300,
     },
     {
+        field: 'zip',
+        headerName: 'Zip Code',
+        width: 150,
+        valueGetter: (params) => `${params.row.zipCode || ''}`,
+    },
+    {
         field: 'price',
         headerName: 'Price',
         width: 150,
         valueGetter: ({ row }) => formatMoney(row.price)
+    },
+    {
+      field: 'other',
+      headerName: 'Other',
+      width: 150,
+      valueGetter: ({ row }) => `${row.other || ''}`
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 150,
+      valueGetter: ({ row }) => `${row.status || ''}`
     },
     {
         field: 'fullName',
@@ -470,7 +700,13 @@ const ColumnsInterests = [
         field: 'address',
         headerName: 'Address',
         width: 300,
-        valueGetter: ({ row }) => formatMoney(row.property.address)
+        valueGetter: ({ row }) => row.property.address.replace(/\d+/, '').replace(/,\s*$/, "")
+    },
+    {
+      field: 'zip',
+      headerName: 'Zip Code',
+      width: 150,
+      valueGetter: (params) => {console.log(`params.row`, params.row);return `${params.row.property.zipCode || ''}`;},
     },
     {
         field: 'price',
@@ -516,6 +752,8 @@ const ColumnsInterests = [
 ]
 
 function formatMoney(val) {
+    console.log(`val`, val)
+    val = val.toString();
     return isNaN(parseInt(val.replace(/[^0-9.]/g, ''))) ? (val || '—') : `$${parseInt(val.replace(/[^0-9.]/g, '')).toLocaleString()}`
 }
 
@@ -540,8 +778,20 @@ function getModalTableFromRow(row) {
             data: row.coordinate ? `${row.coordinate.lat.toFixed(7)}, ${row.coordinate.lng.toFixed(7)}` : '—'
         },
         {
+          title: 'Zip Code',
+          data: row.zipCode ? `${row.zipCode}` : '—'
+        },
+        {
             title: 'Price',
             data: isNaN(parseInt(row.price.replace(/[^0-9.]/g, ''))) ? (row.price || '—') : `$${parseInt(row.price.replace(/[^0-9.]/g, '')).toLocaleString()}`
+        },
+        {
+          title: 'Other',
+          data: row.other ? `${row.other}` : '—'
+        },
+        {
+          title: 'Status',
+          data: row.status ? `${row.status}` : '—'
         },
         {
             title: 'Time Frame to sell',
@@ -603,7 +853,7 @@ function getModalTableFromRow(row) {
 //     "payment" : "standart",
 //     "userType" : "Seller"
 //   }
-  
+
 
 function getSellerTableFromRow(row) {
     return [
@@ -628,6 +878,10 @@ function getSellerTableFromRow(row) {
             data: row.isPrimary || '—'
         },
         {
+          title: 'How fast do you want to sell?',
+          data: row.howQuick || '—'
+      },
+        {
             title: 'ID in database',
             data: row.id || '—'
         },
@@ -651,7 +905,7 @@ function getSellerTableFromRow(row) {
 //     "payment" : "standart",
 //     "userType" : "Buyer"
 //   }
-  
+
 
 function getBuyerTableFromRow(row) {
     return [
@@ -701,3 +955,46 @@ function getBuyerTableFromRow(row) {
         },
     ]
 }
+
+const ColumnsAgents = [
+  {
+      field: 'email',
+      headerName: 'Address',
+      width: 200,
+      valueGetter: (params) => `${params.row.email || ''}`,
+  },
+  {
+      field: 'zip',
+      headerName: 'Zip Codes',
+      width: 400,
+      valueGetter: (params) => `${params.row.zipCodes.join(' ') || ''}`,
+      renderCell: (params) => (
+        <div style={{overflow: 'auto'}}>
+          <Typography>{params.row.zipCodes.join(' ')}</Typography>
+        </div>
+      )
+  },
+  {
+      field: 'info',
+      headerName: 'Short info',
+      width: 200,
+      valueGetter: (params) => `${params.row.info || ''}`,
+  },
+  {
+      field: 'deletedCount',
+      headerName: 'Number of removed properties',
+      width: 280,
+
+      valueGetter: (params) => `${params.row.deletedCount || ''}`,
+  },
+  {
+      field: 'created',
+      headerName: 'Created',
+      width: 200,
+      valueGetter: (params) => `${params.row.createAt ? moment(params.row.createAt).format('YYYY/MM/DD') : ''}`,
+  },
+  // {
+  //     field: 'id',
+  //     headerName: 'ID',
+  // },
+]

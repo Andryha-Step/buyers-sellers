@@ -33,7 +33,7 @@ export default function Auth(props) {
             const userCredential = await firebase.auth().signInWithEmailAndPassword(login, password)
             const userSnap = await dbRef.child('users').child(userCredential.user.uid).get()
 
-            if (!(userSnap.exists() && userSnap.val().userType === 'admin')) {
+            if (!(userSnap.exists() && userSnap.val().userType === 'admin'  || userSnap.val().userType === 'agent')) {
                 return setError('You are not an admin')
             }
 
@@ -46,7 +46,7 @@ export default function Auth(props) {
             if (err.message) {
                 return setError(err.message)
             }
-            
+
             setError('Unknown error')
         } finally {
             setLoading(false);
