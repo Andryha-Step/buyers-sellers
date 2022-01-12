@@ -18,6 +18,7 @@ import RadioForm, {
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import database from '@react-native-firebase/database';
 import auth from '@react-native-firebase/auth';
+import firebase from '../../database/fireBase';
 
 const {width, height} = Dimensions.get('window');
 
@@ -40,9 +41,21 @@ const AboutRivenn = props => {
     if (termsAgree) {
       setErrore(false);
       console.log(props.route.params);
-      userType === 'Buyer'
-        ? props.navigation.navigate('MainStackBuyer')
-        : props.navigation.navigate('MainStack');
+      const userId = auth().currentUser.uid;
+      firebase
+        .database()
+        .ref('users/' + userId + '/')
+        .update({
+          privacyAccepted: true,
+        })
+        .then(data => {
+          userType === 'Buyer'
+            ? props.navigation.navigate('MainStackBuyer')
+            : props.navigation.navigate('MainStack');
+        })
+        .catch(error => {
+          console.log('Storing Error', error);
+        });
     } else {
       setErrore(true);
     }
@@ -105,7 +118,7 @@ const AboutRivenn = props => {
       )}
       <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
         <Text style={styles.textStyle}>
-          I'ready to have Rivenn help me find a home
+          I’m ready to have Rivenn help me find a home
         </Text>
       </TouchableOpacity>
       {/*<Button*/}

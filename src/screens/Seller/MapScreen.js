@@ -164,7 +164,7 @@ const MapScreen = props => {
           });
         }}
         query={{
-          key: 'AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw',
+          key: 'AIzaSyBT-kPnfNowPW7n3tdTXhVwgZtLW7cFNeE',
           language: 'en',
         }}
       />
@@ -215,27 +215,35 @@ const MapScreen = props => {
             latitudeDelta: 0.5,
             longitudeDelta: 0.5,
           }}>
-          {markerList.flat().map((marker, index) => {
-            if (!marker.coordinate) {
-              return null;
-            }
-            return (
-              <Marker
-                key={index}
-                style={{height: 40, width: 30}}
-                // image={{uri: 'map_pin'}}
-                coordinate={{
-                  latitude: marker.coordinate.lat || 40.73061,
-                  longitude: marker.coordinate.lng || -73.935242,
-                }}
-                title={marker.address}>
-                <Image
-                  source={require('../../assets/buyer-marker.png')}
-                  style={{width: 20, height: 30, resizeMode: 'cover'}}
-                />
-              </Marker>
-            );
-          })}
+          {markerList
+            .flat()
+            .filter(marker => marker.status !== 'rejected')
+            .map((marker, index) => {
+              if (!marker.coordinate) {
+                return null;
+              }
+              return (
+                <Marker
+                  key={index}
+                  // style={{height: 40, width: 30}}
+                  // image={{uri: 'map_pin'}}
+                  coordinate={{
+                    latitude: marker.coordinate.lat || 40.73061,
+                    longitude: marker.coordinate.lng || -73.935242,
+                  }}
+                  title={marker.address}>
+                  <Image
+                    source={
+                      marker.status === 'pending'
+                        ? require('../../assets/seller-marker.png')
+                        : require('../../assets/buyer-marker.png')
+                    }
+                    style={{width: 20, height: 30}}
+                    resizeMode="contain"
+                  />
+                </Marker>
+              );
+            })}
         </MapView>
       )}
     </View>

@@ -28,7 +28,7 @@ const PropertyScreen = props => {
   const [userData, setUserData] = useState(null);
   const [addressList, setAddressList] = useState([]);
 
-  Geocoder.init('AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw');
+  Geocoder.init('AIzaSyBT-kPnfNowPW7n3tdTXhVwgZtLW7cFNeE');
 
   useEffect(() => {
     database()
@@ -51,8 +51,7 @@ const PropertyScreen = props => {
   useEffect(() => {
     database()
       .ref('users/' + userId)
-      .once('value')
-      .then(snapshot => {
+      .on('value', snapshot => {
         console.log('User Property screen: ', snapshot.val());
         if (snapshot.val() !== null) {
           setUserData(snapshot.val());
@@ -60,8 +59,8 @@ const PropertyScreen = props => {
         } else {
           console.log('user not register');
         }
-      })
-      .catch(error => console.log(error, 'user Data error'));
+      });
+    // .catch(error => console.log(error, 'user Data error'));
   }, [userId]);
 
   //{"lat": 50.4501, "lng": 30.5234}
@@ -193,6 +192,11 @@ const PropertyScreen = props => {
                 lat={item.coordinate.lat}
                 lng={item.coordinate.lng}
               />
+              {item.status && (
+                <Text style={{fontSize: 13, fontWeight: '500', marginTop: 15}}>
+                  Status: {item.status}
+                </Text>
+              )}
               <View
                 style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                 <View
@@ -253,7 +257,7 @@ const ZipCodeText = ({lat, lng}) => {
 
   useEffect(() => {
     getZipCode();
-  }, []);
+  }, [lat, lng]);
 
   const getZipCode = () => {
     Geocoder.from(lat, lng)

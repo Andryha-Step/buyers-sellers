@@ -35,7 +35,7 @@ static void InitializeFlipper(UIApplication *application) {
   if ([FIRApp defaultApp] == nil) {
       [FIRApp configure];
     }
-  [GMSServices provideAPIKey:@"AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw"];
+  [GMSServices provideAPIKey:@"AIzaSyBT-kPnfNowPW7n3tdTXhVwgZtLW7cFNeE"];
 #ifdef FB_SONARKIT_ENABLED
   InitializeFlipper(application);
 #endif
@@ -56,8 +56,8 @@ static void InitializeFlipper(UIApplication *application) {
   rootViewController.view = rootView;
   self.window.rootViewController = rootViewController;
   [self.window makeKeyAndVisible];
-  
- 
+
+
   return YES;
 }
 

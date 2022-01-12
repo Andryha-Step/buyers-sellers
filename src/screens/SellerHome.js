@@ -1,7 +1,7 @@
 // components/dashboard.js
 
 import React, {useState, useEffect} from 'react';
-import {
+import ReactNative, {
   StyleSheet,
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   Dimensions,
   Alert,
+  Keyboard,
 } from 'react-native';
 import RadioForm, {
   RadioButton,
@@ -21,6 +22,7 @@ import firebase from '../../database/fireBase';
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 
 const {width, height} = Dimensions.get('window');
 
@@ -37,8 +39,18 @@ const SellerHome = props => {
   const [price, setPrice] = useState('');
   const [timeFrame, setTimeFrame] = useState('');
   const [whereNew, setWhereNew] = useState('');
+  const [whereNewCoordinate, setWhereNewCoordinate] = useState(null);
   const [addressId, setAddressId] = useState(null);
   const [currentKey, setCurrentKey] = useState(null);
+  const [isAccepted, setIsAccepted] = useState(false);
+  const [other, setOther] = useState('');
+  const [otherErrors, setOtherErrors] = useState(false);
+
+  const [scroll, setScroll] = useState(null);
+
+  const emailPat = /^(\".*\"|[A-Za-z]\w*)@(\[\d{1,3}(\.\d{1,3}){3}]|[A-Za-z]\w*(\.[A-Za-z]\w*)+)$/;
+  const phonePat = /^\+?[0-9]{3}-?[0-9]{6,12}$/;
+  const urlPat = '^[A-Za-z]+://[A-Za-z0-9-_]+\\.[A-Za-z0-9-_%&?/.=]+$';
 
   useEffect(() => {
     if (props.route.params.addressId !== false) {
@@ -54,11 +66,51 @@ const SellerHome = props => {
       setRadioValue(home.needBuy);
       setWhereNew(home.whereNew);
     }
-  }, [props.route.params.addressId]);
+    const userId = auth().currentUser.uid;
+    database()
+      .ref('users/' + userId)
+      .once('value')
+      .then(snapshot => {
+        console.log('User data: ', snapshot.val());
+        if (snapshot.val() !== null) {
+          setIsAccepted(snapshot.val().privacyAccepted);
+        }
+      });
+  }, [props.route]);
+
+  useEffect(() => {
+    const words = other.split(' ');
+    let errors = 0;
+    words.forEach(word => {
+      if (
+        !!word.match(phonePat) ||
+        !!word.match(emailPat) ||
+        !!word.match(urlPat)
+      ) {
+        errors += 1;
+      }
+    });
+    if (errors > 0) {
+      setOtherErrors(true);
+    } else {
+      setOtherErrors(false);
+    }
+  }, [other]);
 
   const onSubmit = async () => {
-    if (address.length == 0 || price.length == 0 || timeFrame.length == 0) {
-      props.navigation.navigate('AboutRivenn', {userType: 'Seller'});
+    if (
+      address.length == 0 ||
+      price.length == 0 ||
+      timeFrame.length == 0 ||
+      otherErrors
+    ) {
+      if (props.route.params.goBack) {
+        isAccepted
+          ? Alert.alert('All fields are required.')
+          : props.navigation.goBack();
+      } else {
+        props.navigation.navigate('AboutRivenn', {userType: 'Seller'});
+      }
       return;
     }
     const userId = auth().currentUser.uid;
@@ -80,6 +132,8 @@ const SellerHome = props => {
         timeFrame: timeFrame,
         whereNew: whereNew,
         needBuy: radioValue,
+        other: other,
+        status: 'pending',
       })
       .then(data => {
         let key = data.getKey();
@@ -94,6 +148,8 @@ const SellerHome = props => {
             whereNew: whereNew,
             needBuy: radioValue,
             sellerId: userId,
+            other: other,
+            status: 'pending',
           })
           .then(data => {
             console.log('Saved Data', data);
@@ -108,8 +164,14 @@ const SellerHome = props => {
         console.log('Storing Error', error);
       });
   };
+
   const onUpdate = () => {
-    if (address.length == 0 || price.length == 0 || timeFrame.length == 0) {
+    if (
+      address.length == 0 ||
+      price.length == 0 ||
+      timeFrame.length == 0 ||
+      otherErrors
+    ) {
       Alert.alert('All fields are required');
       return;
     }
@@ -123,7 +185,10 @@ const SellerHome = props => {
         price: price,
         timeFrame: timeFrame,
         whereNew: whereNew,
+        whereNewCoordinate: whereNewCoordinate,
         needBuy: radioValue,
+        other: other,
+        status: 'pending',
       });
     firebase
       .database()
@@ -134,149 +199,203 @@ const SellerHome = props => {
         price: price,
         timeFrame: timeFrame,
         whereNew: whereNew,
+        whereNewCoordinate: whereNewCoordinate,
         needBuy: radioValue,
         userId: userId,
+        other: other,
+        status: 'pending',
       })
       .then(data => {
         console.log('Updated', data);
         props.navigation.goBack();
       });
   };
-  return (
-    <View style={styles.container}>
-      <View style={styles.wrapper}>
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>My Address: </Text>
-          <View style={styles.input}>
-            <TouchableOpacity
-              onPress={() =>
-                props.navigation.navigate('AddressScreen', {
-                  setAddress: setAddress,
-                  setCoordinate: setCoordinate,
-                  setPlaceId: setPlaceId,
-                })
-              }>
-              <Text style={{fontSize: 17}}> {address}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.inputItem}>
-          <Text style={styles.inputTitle}>Price: </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={value => setPrice(value)}
-            value={price}
-          />
-        </View>
 
-        <View style={styles.inputItem}>
-          <Text style={{width: '40%', fontSize: 17}}>Timeframe to sell: </Text>
-          <TextInput
-            style={{
-              width: '60%',
-              padding: 0,
-              borderBottomWidth: 1,
-              borderColor: '#3eadac',
-              fontSize: 17,
-            }}
-            onChangeText={value => setTimeFrame(value)}
-            value={timeFrame}
-          />
-        </View>
-        <View style={styles.radioItem}>
-          <Text style={styles.radioTitle}>
-            Do you need to buy another home?
-          </Text>
-          <View style={styles.radioWrapper}>
-            <RadioForm style={styles.radioForm}>
-              {radio_props.map((obj, i) => {
-                return (
-                  <RadioButton
-                    labelHorizontal={true}
-                    key={i}
-                    wrapStyle={{width: '50%', marginTop: 10}}>
-                    {/*  You can set RadioButtonLabel before RadioButtonInput */}
-                    <RadioButtonInput
-                      obj={obj}
-                      index={i}
-                      isSelected={radioValue === obj.value}
-                      onPress={value => setRadioValue(value)}
-                      buttonInnerColor={'#3eadac'}
-                      buttonOuterColor={'#3eadac'}
-                      buttonSize={15}
-                      buttonStyle={{}}
-                    />
-                    <RadioButtonLabel
-                      obj={obj}
-                      index={i}
-                      labelHorizontal={true}
-                      onPress={value => setRadioValue(value)}
-                      labelStyle={{fontSize: 17, color: '#000'}}
-                    />
-                  </RadioButton>
-                );
-              })}
-            </RadioForm>
+  console.log('where', whereNew);
+
+  const _scrollToInput = reactNode => {
+    // Add a 'scroll' ref to your ScrollView
+    console.log('scroll', scroll);
+    if (scroll) {
+      scroll.props.scrollToFocusedInput(reactNode);
+    }
+  };
+
+  return (
+    <KeyboardAwareScrollView
+      innerRef={ref => {
+        console.log('ref', ref ? ref.getScrollResponder() : null);
+        setScroll(ref ? ref.getScrollResponder() : null);
+      }}>
+      <View style={styles.container}>
+        <View style={styles.wrapper}>
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>My Address: </Text>
+            <View style={styles.input}>
+              <TouchableOpacity
+                onPress={() =>
+                  props.navigation.navigate('AddressScreen', {
+                    setAddress: setAddress,
+                    setCoordinate: setCoordinate,
+                    setPlaceId: setPlaceId,
+                  })
+                }>
+                <Text style={{fontSize: 17}}> {address}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.inputItem}>
-            <Text style={{width: '40%', fontSize: 17}}>if Yes, where: </Text>
+            <Text style={styles.inputTitle}>Price: </Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={value => setPrice(value)}
+              value={price}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputItem}>
+            <Text style={{width: '40%', fontSize: 17}}>
+              Timeframe to sell:{' '}
+            </Text>
             <TextInput
               style={{
                 width: '60%',
+                padding: 0,
                 borderBottomWidth: 1,
                 borderColor: '#3eadac',
                 fontSize: 17,
               }}
-              onChangeText={value => setWhereNew(value)}
-              value={whereNew}
+              onChangeText={value => setTimeFrame(value)}
+              value={timeFrame}
             />
           </View>
-        </View>
-      </View>
-
-      {!props.route.params.userId && (
-        <View style={[styles.buttonWrapper, {justifyContent: 'space-between'}]}>
-          {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
-          {/*  <Text style={styles.textStyle}>Previous</Text>*/}
-          {/*</TouchableOpacity>*/}
-          <TouchableOpacity
-            style={styles.submit}
-            onPress={() => props.navigation.goBack()}>
-            <Text style={styles.textStyle}>Cansel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
-            <Text style={styles.textStyle}>Next</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {props.route.params.userId && (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%',
-          }}>
-          <TouchableOpacity
-            style={styles.cancel}
-            onPress={() => props.navigation.goBack()}>
-            <Text
-              style={{
-                color: '#3eadac',
-                textTransform: 'uppercase',
-                fontWeight: '500',
-                fontSize: 15,
-              }}>
-              Cancel
+          <View style={styles.inputItem}>
+            <Text style={styles.inputTitle}>Other: </Text>
+            <TextInput
+              style={styles.inputArea}
+              // onChangeText={value => setPrice(value)}
+              // value={price}
+              multiline
+              numberOfLines={4}
+              keyboardType="default"
+              value={other}
+              blurOnSubmit
+              onSubmitEditing={() => {
+                Keyboard.dismiss();
+              }}
+              returnKeyType="done"
+              onChangeText={value => setOther(value)}
+              onFocus={(event: Event) => {
+                _scrollToInput(ReactNative.findNodeHandle(event.target));
+              }}
+            />
+          </View>
+          <View>
+            {otherErrors && (
+              <Text style={styles.errorText}>
+                You can't put phone, email or url in this field
+              </Text>
+            )}
+          </View>
+          <View style={styles.radioItem}>
+            <Text style={styles.radioTitle}>
+              Do you need to buy another home?
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
-            <Text style={styles.textStyle}>Update</Text>
-          </TouchableOpacity>
+            <View style={styles.radioWrapper}>
+              <RadioForm style={styles.radioForm}>
+                {radio_props.map((obj, i) => {
+                  return (
+                    <RadioButton
+                      labelHorizontal={true}
+                      key={i}
+                      wrapStyle={{width: '50%', marginTop: 10}}>
+                      {/*  You can set RadioButtonLabel before RadioButtonInput */}
+                      <RadioButtonInput
+                        obj={obj}
+                        index={i}
+                        isSelected={radioValue === obj.value}
+                        onPress={value => setRadioValue(value)}
+                        buttonInnerColor={'#3eadac'}
+                        buttonOuterColor={'#3eadac'}
+                        buttonSize={15}
+                        buttonStyle={{}}
+                      />
+                      <RadioButtonLabel
+                        obj={obj}
+                        index={i}
+                        labelHorizontal={true}
+                        onPress={value => setRadioValue(value)}
+                        labelStyle={{fontSize: 17, color: '#000'}}
+                      />
+                    </RadioButton>
+                  );
+                })}
+              </RadioForm>
+            </View>
+            <View style={styles.inputItem}>
+              <Text style={{width: '40%', fontSize: 17}}>If yes, where: </Text>
+              <View style={[styles.input, {width: '60%'}]}>
+                <TouchableOpacity
+                  onPress={() =>
+                    props.navigation.navigate('AddressScreen', {
+                      setAddress: setWhereNew,
+                      setCoordinate: setWhereNewCoordinate,
+                      setPlaceId: () => {},
+                    })
+                  }>
+                  <Text style={{fontSize: 17}}> {whereNew}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
-      )}
-    </View>
+
+        {!props.route.params.addressId && (
+          <View
+            style={[styles.buttonWrapper, {justifyContent: 'space-between'}]}>
+            {/*<TouchableOpacity style={styles.submit} onPress={() => props.navigation.goBack() }>*/}
+            {/*  <Text style={styles.textStyle}>Previous</Text>*/}
+            {/*</TouchableOpacity>*/}
+            <TouchableOpacity
+              style={styles.submit}
+              onPress={() => props.navigation.goBack()}>
+              <Text style={styles.textStyle}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submit} onPress={() => onSubmit()}>
+              <Text style={styles.textStyle}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {props.route.params.addressId && (
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+            }}>
+            <TouchableOpacity
+              style={styles.cancel}
+              onPress={() => props.navigation.goBack()}>
+              <Text
+                style={{
+                  color: '#3eadac',
+                  textTransform: 'uppercase',
+                  fontWeight: '500',
+                  fontSize: 15,
+                }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submit} onPress={() => onUpdate()}>
+              <Text style={styles.textStyle}>Update</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -366,6 +485,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#3eadac',
     fontSize: 17,
+  },
+  inputArea: {
+    width: '70%',
+    borderWidth: 1,
+    borderColor: '#3eadac',
+    fontSize: 17,
+    padding: 5,
+    textAlignVertical: 'top',
+    maxHeight: 90,
   },
   inputDescribe: {
     width: '100%',

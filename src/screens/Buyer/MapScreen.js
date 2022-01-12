@@ -22,6 +22,10 @@ import auth from '@react-native-firebase/auth';
 import {useIsFocused} from '@react-navigation/native';
 import {getDistance} from 'geolib';
 import {GooglePlacesAutocomplete} from 'react-native-google-places-autocomplete';
+// import sgMail from '@sendgrid/mail';
+// sgMail.setApiKey(
+//   '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',
+// );
 
 const {width, height} = Dimensions.get('window');
 const MapScreen = props => {
@@ -49,6 +53,8 @@ const MapScreen = props => {
   const [mapData, setMapData] = useState(null);
   const [mapValue, setMapValue] = useState(null);
   const [searchRegion, setSearchRegion] = useState(null);
+  const [addressModal, setAddressModal] = useState(false);
+  const [selectedAddresses, setSelectedAddresses] = useState([]);
 
   const ref = useRef();
 
@@ -159,7 +165,6 @@ const MapScreen = props => {
         const homesValue = Object.values(snapshot.val());
         const homesKeys = Object.keys(snapshot.val());
         homesValue.filter((marker, index) => {
-          console.log(marker.latitude == coord.latitude);
           if (marker.latitude == coord.latitude) {
             setShadowMode(false);
             database()
@@ -187,6 +192,35 @@ const MapScreen = props => {
     ]);
   };
 
+  const sendEmail = () => {
+    console.log('fetch here');
+    let body = {
+      personalizations: [
+        {to: [{email: 'romagladyshev@gmail.com'}], subject: 'Hello, World!'},
+      ],
+      from: {email: 'from_address@example.com'},
+      content: [{type: 'text/plain', value: 'Hello, World!'}],
+    };
+
+    console.log('body', JSON.stringify(body));
+    fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization:
+          'Bearer ' +
+          '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',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.parse(JSON.stringify(body)),
+    })
+      .then(response => {
+        console.log('response', response);
+      })
+      .catch(err => {
+        console.log('err', err);
+      });
+  };
+
   const onInterested = (marker, index) => {
     if (marker.userId && Object.values(marker.userId).includes(userId)) {
       setAlreadyInterested(true);
@@ -199,15 +233,12 @@ const MapScreen = props => {
     setInterestedKey(markerKeys.flat()[index]);
   };
   const saveInterested = () => {
+    console.log('here');
+    sendEmail();
     database()
       .ref(`users/${userId}`)
       .once('value')
       .then(snap => {
-        console.log(snap.val().todayInterestsCount);
-        console.log(
-          new Date(snap.val().lastInterestTime || 0).getDate(),
-          new Date().getDate(),
-        );
         // if (
         //   (snap.val().todayInterestsCount || 0) < 10 ||
         //   new Date(snap.val().lastInterestTime || 0).getDate() !==
@@ -237,7 +268,6 @@ const MapScreen = props => {
               .ref('AllSellerHomes/')
               .once('value')
               .then(snapshot => {
-                console.log('Update home data ', snapshot.val());
                 if (snapshot.val() !== null) {
                   setUserData(snapshot.val());
                   setAddressList([snapshot.val()]);
@@ -275,6 +305,156 @@ const MapScreen = props => {
       setMarkerKeys(addressList.map(item => Object.keys(item)));
     }
   }, [addressList]);
+
+  function calcCrow(coords1, coords2) {
+    // var R = 6.371; // km
+    var R = 6371000;
+    var dLat = toRad(coords2.lat - coords1.lat);
+    var dLon = toRad(coords2.lng - coords1.lng);
+    var lat1 = toRad(coords1.lat);
+    var lat2 = toRad(coords2.lat);
+
+    var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c;
+    if (d > 1200) {
+      return false;
+    }
+    return true;
+  }
+
+  function toRad(Value) {
+    return (Value * Math.PI) / 180;
+  }
+
+  let markerFlat = markerList
+    .flat()
+    .filter(item => item.coordinate && item.status !== 'rejected')
+    .map((item, index) => ({...item, id: index}));
+  let groupedList = [];
+
+  console.log('markerFlat', markerFlat);
+
+  // for (let i = 0; i < markerFlat.length - 1; i++) {
+  //   let currentItem = markerFlat[i];
+  //   let currentArray = [];
+  //   for (let j = 0; j < markerFlat.length - 1; j++) {
+  //     if (i !== j) {
+  //       if (calcCrow(currentItem.coordinate, markerFlat[j].coordinate)) {
+  //         currentArray.push(markerFlat[j]);
+  //         markerFlat = markerFlat.filter(item => item.id !== markerFlat[j].id);
+  //       }
+  //     }
+  //   }
+  //   groupedList = [...groupedList, [currentItem, ...currentArray]];
+  // }
+
+  const getGroupedList = list => {
+    console.log('list', list);
+    const iter = (items, acc) => {
+      if (items.length === 0) {
+        return acc;
+      }
+
+      const [first, ...rest] = items;
+      const groupItems = [
+        first,
+        ...rest.filter(item => calcCrow(first.coordinate, item.coordinate)),
+        ,
+      ];
+      const groupItemsIds = groupItems.map(({id}) => id);
+
+      const newItems = rest.filter(item => !groupItemsIds.includes(item.id));
+      const newAcc = [...acc, groupItems];
+
+      return iter(newItems, newAcc);
+    };
+
+    return iter(list, []);
+  };
+
+  groupedList = getGroupedList(markerFlat).map(el => el.filter(el => el));
+
+  const onCirclePress = address => {
+    console.log('address onPress', address);
+    setSelectedAddresses(address);
+    setAddressModal(true);
+  };
+
+  console.log('groupedList', groupedList);
+  console.log('interestedData', interestedData);
+
+  const AddressModal = () => {
+    return (
+      <Modal transparent={true} animationType={'fade'} visible={addressModal}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <TouchableOpacity
+              style={{position: 'absolute', right: 15, top: 15}}
+              onPress={() => {
+                setAddressModal(false);
+                setSelectedAddresses([]);
+              }}>
+              <Image
+                style={{width: 15, height: 15}}
+                source={require('../../assets/cancel.png')}
+              />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: '600',
+                textAlign: 'center',
+                marginBottom: 20,
+              }}>
+              Available properties {'\n'} in this area:
+            </Text>
+            <ScrollView
+              contentContainerStyle={{
+                marginBottom: 20,
+                width: '100%',
+                paddingHorizontal: 10,
+              }}>
+              <View>
+                {selectedAddresses.map((a, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => {
+                      onInterested(a, i);
+                      setAddressModal(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      width: '100%',
+                      marginTop: 5,
+                      borderWidth: 2,
+                      borderRadius: 10,
+                      marginBottom: 10,
+                      backgroundColor: '#3eadac',
+                      padding: 5,
+                      borderColor: '#3eadac',
+                      textAlign: 'center',
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        color: '#fff',
+                        textAlign: 'center',
+                      }}>
+                      ${a.price}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <>
@@ -327,7 +507,7 @@ const MapScreen = props => {
           });
         }}
         query={{
-          key: 'AIzaSyAQ-1oUHpmcphF8N9aj9PTCKQSjYBuEqMw',
+          key: 'AIzaSyBT-kPnfNowPW7n3tdTXhVwgZtLW7cFNeE',
           language: 'en',
         }}
       />
@@ -353,9 +533,26 @@ const MapScreen = props => {
             style={styles.plusIcon}
             onPress={() => setShadowMode(!shadowMode)}>
             {shadowMode ? (
-              <Text style={{fontSize: 40, color: '#3eadac'}}>✕</Text>
+              <Text
+                style={{
+                  fontSize: 30,
+                  fontWeight: 'bold',
+                  margin: 0,
+                  lineHeight: 38,
+                  color: '#3eadac',
+                }}>
+                ✕
+              </Text>
             ) : (
-              <Text style={{fontSize: 40, color: '#3eadac'}}>±</Text>
+              <Text
+                style={{
+                  fontSize: 40,
+                  margin: 0,
+                  lineHeight: 45,
+                  color: '#3eadac',
+                }}>
+                ±
+              </Text>
             )}
           </TouchableOpacity>
         )}
@@ -387,7 +584,8 @@ const MapScreen = props => {
             style={{flex: 1}}
             onPress={event => {
               const coordinates = event.nativeEvent.coordinate;
-              markerList.flat().map((zone, index) => {
+              groupedList.map((address, index) => {
+                const zone = address[0];
                 if (zone.coordinate) {
                   const distance = getDistance(
                     {
@@ -399,8 +597,13 @@ const MapScreen = props => {
                       longitude: zone.coordinate.lng,
                     },
                   );
-                  if (distance <= 5000) {
-                    onInterested(zone, index);
+                  if (distance <= 1200) {
+                    if (address.length > 1) {
+                      onCirclePress(address);
+                    } else {
+                      console.log('zone', zone);
+                      onInterested(zone, index);
+                    }
                   }
                 }
               });
@@ -412,7 +615,8 @@ const MapScreen = props => {
               latitudeDelta: 0.5,
               longitudeDelta: 0.5,
             }}>
-            {markerList.flat().map((marker, index) => {
+            {groupedList.map((address, index) => {
+              const marker = address[0];
               let alredyInterested;
               if (marker.userId) {
                 alredyInterested = Object.values(marker.userId).includes(
@@ -420,19 +624,24 @@ const MapScreen = props => {
                 );
               }
 
-              if (!marker.coordinate) {
+              {
+                /* if (!marker.coordinate) {
                 return null;
+              } */
               }
 
               return (
                 <Circle
                   key={index}
-                  onPress={e => onInterested(marker, index)}
-                  radius={5000}
+                  onPress={e => {
+                    console.log('onPress', e);
+                    onInterested(marker, index);
+                  }}
+                  radius={1200}
                   fillColor={
-                    alredyInterested
-                      ? 'rgba(123, 239, 178, .5)'
-                      : 'rgba(62, 173, 172, 0.5)'
+                    address.length > 1
+                      ? 'rgba(26,140,255, 0.4)'
+                      : 'rgba(123, 239, 178, 0.5)'
                   }
                   strokeColor={'rgba(62, 173, 172, 1)'}
                   center={{
@@ -483,6 +692,17 @@ const MapScreen = props => {
                   </Text>
                 </View>
               </View>
+              {interestedData.other ? (
+                <View style={{justifyContent: 'center', alignItems: 'center'}}>
+                  <Text
+                    style={{fontSize: 18, marginTop: 15, fontWeight: '600'}}>
+                    Other info
+                  </Text>
+                  <Text style={styles.modalText}>{interestedData.other}</Text>
+                </View>
+              ) : (
+                <View />
+              )}
               <View
                 style={{
                   flexDirection: 'row',
@@ -517,7 +737,11 @@ const MapScreen = props => {
                       alignItems: 'center',
                       borderColor: '#3eadac',
                     }}
-                    onPress={() => saveInterested()}>
+                    onPress={() =>
+                      interestedData.status === 'pending'
+                        ? {}
+                        : saveInterested()
+                    }>
                     <Text
                       style={{
                         fontSize: 15,
@@ -525,7 +749,9 @@ const MapScreen = props => {
                         fontWeight: '600',
                         color: '#3eadac',
                       }}>
-                      I’m interested in it
+                      {interestedData.status === 'pending'
+                        ? 'This property is on review'
+                        : 'I’m interested in it'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -533,6 +759,7 @@ const MapScreen = props => {
             </View>
           </View>
         </Modal>
+        <AddressModal />
       </View>
     </>
   );
@@ -644,7 +871,7 @@ const styles = StyleSheet.create({
     width: width - 100,
     backgroundColor: 'white',
     borderRadius: 20,
-    paddingBottom: 0,
+    paddingBottom: 10,
     paddingTop: 20,
     alignItems: 'center',
     shadowColor: '#000',
@@ -655,6 +882,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    maxHeight: '70%',
   },
   modalText: {
     fontSize: 15,
