@@ -55,8 +55,11 @@ const MapScreen = props => {
   const [searchRegion, setSearchRegion] = useState(null);
   const [addressModal, setAddressModal] = useState(false);
   const [selectedAddresses, setSelectedAddresses] = useState([]);
+  const [userEmail, setUserEmail] = useState('');
 
   const ref = useRef();
+
+  console.log('userData', userData);
 
   useEffect(() => {
     const isFocused = ref.current?.isFocused();
@@ -127,6 +130,7 @@ const MapScreen = props => {
 
   const onAuthStateChanged = user => {
     if (user) {
+      // setUserEmail(user.email);
       setUserId(user.uid);
     }
     if (!user) {
@@ -193,13 +197,18 @@ const MapScreen = props => {
   };
 
   const sendEmail = () => {
+    console.log('userEmail', userEmail);
     console.log('fetch here');
     let body = {
-      personalizations: [
-        {to: [{email: 'romagladyshev@gmail.com'}], subject: 'Hello, World!'},
+      personalizations: [{to: [{email: userEmail}], subject: 'Rivenn'}],
+      from: {email: 'rivennsendgrid@gmail.com'},
+      content: [
+        {
+          type: 'text/html',
+          value:
+            '<div><img src="https://play-lh.googleusercontent.com/VIvVZzgEBzQl1RGTqu7cO2AfwvfsxAN7zqV9xdDG8T5iyofYMXCX7ybO8JWGpFroCFU=s180-rw" /><p>Great news</p><p>Somebody interested in your property.<br />Wait for further communication from Rivenn.</p></div>',
+        },
       ],
-      from: {email: 'from_address@example.com'},
-      content: [{type: 'text/plain', value: 'Hello, World!'}],
     };
 
     console.log('body', JSON.stringify(body));
@@ -207,11 +216,10 @@ const MapScreen = props => {
       method: 'POST',
       headers: {
         Authorization:
-          'Bearer ' +
-          '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',
+          'Bearer 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',
         'Content-Type': 'application/json',
       },
-      body: JSON.parse(JSON.stringify(body)),
+      body: JSON.stringify(body),
     })
       .then(response => {
         console.log('response', response);
@@ -228,10 +236,22 @@ const MapScreen = props => {
       setAlreadyInterested(false);
     }
 
+    if (interestedData.sellerId) {
+      database()
+        .ref('users/' + interestedData.sellerId)
+        .once('value')
+        .then(snap => {
+          if (snap.val() && snap.val().email) {
+            setUserEmail(snap.val().email);
+          }
+        });
+    }
+
     setInterested(true);
     setInterestedData(marker);
     setInterestedKey(markerKeys.flat()[index]);
   };
+
   const saveInterested = () => {
     console.log('here');
     sendEmail();
