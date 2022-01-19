@@ -497,8 +497,8 @@ const MapScreen = props => {
         styles={{
           container: {
             position: 'absolute',
-            left: Platform.OS == 'ios' ? 30 : 20,
-            top: Platform.OS == 'ios' ? 20 : 10,
+            left: Platform.OS == 'ios' ? '5%' : 20,
+            top: Platform.OS == 'ios' ? 35 : 10,
             zIndex: 102,
             width: '90%',
             height: searchHeight,
@@ -708,7 +708,11 @@ const MapScreen = props => {
                     Time Frame
                   </Text>
                   <Text style={styles.modalText}>
-                    {interestedData.timeFrame} D
+                    {interestedData.timeFrame &&
+                      (interestedData.timeFrame.length < 12
+                        ? interestedData.timeFrame
+                        : interestedData.timeFrame.slice(0, 12) + '...')}
+                    D
                   </Text>
                 </View>
               </View>
@@ -744,6 +748,7 @@ const MapScreen = props => {
                         textTransform: 'uppercase',
                         fontWeight: '600',
                         color: '#3eadac',
+                        textAlign: 'center',
                       }}>
                       You’re already interested in it
                     </Text>

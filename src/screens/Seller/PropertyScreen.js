@@ -214,21 +214,33 @@ const PropertyScreen = props => {
                     {item.price}
                   </Text>
                 </View>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
-                  <Text
-                    style={{fontSize: 15, fontWeight: '600', marginTop: 15}}>
-                    Time Frame:{' '}
-                  </Text>
-                  <Text
-                    style={{fontSize: 13, fontWeight: '400', marginTop: 15}}>
-                    {item.timeFrame}
-                  </Text>
-                </View>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                <Text style={{fontSize: 15, fontWeight: '600', marginTop: 15}}>
+                  Time Frame:{' '}
+                </Text>
+                <Text style={{fontSize: 13, fontWeight: '400', marginTop: 15}}>
+                  {item.timeFrame}
+                </Text>
+              </View>
+              {console.log('info', item)}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                <Text style={{fontSize: 15, fontWeight: '600', marginTop: 15}}>
+                  Other Info:{' '}
+                </Text>
+                <Text style={{fontSize: 13, fontWeight: '400', marginTop: 15}}>
+                  {item.other.length < 30
+                    ? item.other
+                    : item.other.slice(0, 30) + '...'}
+                </Text>
               </View>
             </TouchableOpacity>
           );
